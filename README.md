@@ -24,3 +24,13 @@ In the project directory, you can run:
 
 Runs the app in the development mode.\
 Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+
+## Docker Instructions
+
+1. Build the Docker Image
+   
+### `docker build -t ai-chef`
+
+2. Run Docker container on port 5000
+
+### `docker run -p 5000:5000 ai-chef`
