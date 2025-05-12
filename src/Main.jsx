@@ -12,7 +12,29 @@ export default function Main() {
   
   return (
     <main>
-      
+      <div class="container">
+        <form action={addIngredient} className="add-ingredient-form">
+          <input
+            type="text"
+            placeholder="e.g. lettuce"
+            aria-label="Add ingredient"
+            name="ingredient"
+            required="required"
+            pattern="^(?! )[A-Za-z0-9 ]{0,18}(?<! )$"
+          />
+          <button>Add ingredient</button>
+        </form>
+
+        {ingredients.length > 0 && (
+          <IngredientsList ingredients={ingredients} getRecipe={getRecipe} />
+        )}
+
+        {loading ? (
+          <div className="loader"></div>
+        ) : (
+          recipe && <ClaudeRecipe recipe={recipe} />
+        )}
+      </div>
     </main>
   );
 }
