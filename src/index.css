@@ -145,6 +145,17 @@ ul.ingredients-list > li {
   margin-right: 5px; /* Space between emoji and text */
 }
 
+.error-banner {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  padding: 12px;
+  border-radius: 6px;
+  margin-top: 16px;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
 /* loader */
 .loader {
   display: flex;

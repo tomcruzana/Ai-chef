@@ -4,6 +4,9 @@ import ClaudeRecipe from "./components/ClaudeRecipe";
 import { getRecipeFromMistral } from "./ai";
 
 export default function Main() {
+  // error handling state
+  const [error, setError] = React.useState("");
+
   // ingredient items go here
   const [ingredients, setIngredients] = React.useState([]);
   const [recipe, setRecipe] = React.useState("");
@@ -12,17 +15,38 @@ export default function Main() {
   const recipeRef = React.useRef(null); // Create a ref for the recipe section
 
   async function getRecipe() {
-    setLoading(true); // Show loader
-    const recipeMarkdown = await getRecipeFromMistral(ingredients);
-    setRecipe(recipeMarkdown); // Update with actual recipe after response
-    setLoading(false); // Hide loader
+    setLoading(true);
+    setError(""); // Clear previous error
+    try {
+      const recipeMarkdown = await getRecipeFromMistral(ingredients);
+      setRecipe(recipeMarkdown);
 
-    // Smooth scroll to the recipe section when it's ready
-    if (recipeRef.current) {
-      window.scrollTo({
-        top: recipeRef.current.offsetTop,
-        behavior: "smooth",
-      });
+      // Scroll only if recipe loaded successfully
+      if (recipeRef.current) {
+        window.scrollTo({
+          top: recipeRef.current.offsetTop,
+          behavior: "smooth",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch recipe:", error.message);
+
+      // Check for 402 error or generic error
+      if (error.message.includes("402")) {
+        setError(
+          "Error 402: You've hit the usage limit. Please try again later."
+        );
+      } else if (error.message.includes("exceeded")) {
+        setError(
+          "You have exceeded your API usage limit. Please try again later."
+        );
+      } else {
+        setError(
+          "Recipe service is temporarily unavailable. Please try again later."
+        );
+      }
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -58,6 +82,12 @@ export default function Main() {
             getRecipe={getRecipe}
             removeIngredient={removeIngredient}
           />
+        )}
+
+        {error && (
+          <div className="error-banner">
+            <p>{error}</p>
+          </div>
         )}
 
         {loading ? (

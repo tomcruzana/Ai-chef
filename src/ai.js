@@ -4,8 +4,7 @@ const SYSTEM_PROMPT = `
 You are an assistant that receives a list of ingredients that a user has and suggests a recipe they could make with some or all of those ingredients. You don't need to use every ingredient they mention in your recipe. The recipe can include additional ingredients they didn't mention, but try not to include too many extra ingredients. Format your response in markdown to make it easier to render to a web page
 `;
 
-// Your hugging face Mystal public API key goes here
-const hf = new HfInference('YOUR_HUGGING_FACE_PUBLIC_API_KEY');
+const hf = new HfInference("API_KEY_HERE");
 
 export async function getRecipeFromMistral(ingredientsArr) {
   const ingredientsString = ingredientsArr.join(", ");
@@ -23,6 +22,13 @@ export async function getRecipeFromMistral(ingredientsArr) {
     });
     return response.choices[0].message.content;
   } catch (err) {
-    console.error(err.message);
+    const message = err?.message || "Unknown error";
+    const statusCode = err?.cause?.statusCode || err?.response?.status || null;
+    const fullMessage = statusCode
+      ? `Error ${statusCode}: ${message}`
+      : message;
+
+    console.error(fullMessage);
+    throw new Error(fullMessage); // Re-throw with status code if present
   }
 }
