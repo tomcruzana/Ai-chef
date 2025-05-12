@@ -7,9 +7,11 @@ Ai-chef is a modern React-based web app that helps you cook smarter using AI! Ju
 - Reusable JSX components  
 - Event handling for responsive UI  
 - HTTP requests to fetch AI-powered recipes  
-- State management using `useState`  
+- State management using `useState`
+- `useRef` for DOM manipulation and state persistence
 - Form handling to input ingredients or preferences  
 - Mystral AI integration for smart recipe generation
+
 
 ## 🛠️ Built With
 
