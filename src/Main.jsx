@@ -9,11 +9,21 @@ export default function Main() {
   const [recipe, setRecipe] = React.useState("");
   const [loading, setLoading] = React.useState(false);
 
+  const recipeRef = React.useRef(null); // Create a ref for the recipe section
+
   async function getRecipe() {
     setLoading(true); // Show loader
     const recipeMarkdown = await getRecipeFromMistral(ingredients);
     setRecipe(recipeMarkdown); // Update with actual recipe after response
     setLoading(false); // Hide loader
+
+    // Smooth scroll to the recipe section when it's ready
+    if (recipeRef.current) {
+      window.scrollTo({
+        top: recipeRef.current.offsetTop,
+        behavior: "smooth",
+      });
+    }
   }
 
   function addIngredient(formData) {
@@ -43,7 +53,11 @@ export default function Main() {
         {loading ? (
           <div className="loader"></div>
         ) : (
-          recipe && <ClaudeRecipe recipe={recipe} />
+          recipe && (
+            <div ref={recipeRef}>
+              <ClaudeRecipe recipe={recipe} />
+            </div>
+          )
         )}
       </div>
     </main>
