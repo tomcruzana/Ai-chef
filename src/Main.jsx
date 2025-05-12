@@ -9,6 +9,13 @@ export default function Main() {
   const [recipe, setRecipe] = React.useState("");
   const [loading, setLoading] = React.useState(false);
 
+  async function getRecipe() {
+    setLoading(true); // Show loader
+    const recipeMarkdown = await getRecipeFromMistral(ingredients);
+    setRecipe(recipeMarkdown); // Update with actual recipe after response
+    setLoading(false); // Hide loader
+  }
+
   function addIngredient(formData) {
     const newIngredient = formData.get("ingredient");
     setIngredients((prevIngredients) => [...prevIngredients, newIngredient]);
