@@ -24,7 +24,7 @@ export default function IngredientsList(props) {
           </div>
           <button onClick={props.getRecipe}>
             <span>
-              <i class="icon-robot"></i>
+              <i className="icon-robot"></i>
             </span>{" "}
             Generate recipe
           </button>
