@@ -31,6 +31,12 @@ export default function Main() {
     setIngredients((prevIngredients) => [...prevIngredients, newIngredient]);
   }
 
+  function removeIngredient(ingredientToRemove) {
+    setIngredients((prevIngredients) =>
+      prevIngredients.filter((ing) => ing !== ingredientToRemove)
+    );
+  }
+
   return (
     <main>
       <div className="container">
@@ -47,7 +53,11 @@ export default function Main() {
         </form>
 
         {ingredients.length > 0 && (
-          <IngredientsList ingredients={ingredients} getRecipe={getRecipe} />
+          <IngredientsList
+            ingredients={ingredients}
+            getRecipe={getRecipe}
+            removeIngredient={removeIngredient}
+          />
         )}
 
         {loading ? (

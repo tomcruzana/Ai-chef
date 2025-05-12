@@ -4,7 +4,13 @@ export default function IngredientsList(props) {
   const ingredientsListItems = props.ingredients.map((ingredient) => (
     <div key={ingredient}>
       <li className="ingredient-element">- {ingredient}</li>
-      <i className="icon-remove-sign"></i>
+      <i
+        className="icon-remove-sign"
+        onClick={() => props.removeIngredient(ingredient)}
+        role="button"
+        aria-label={`Remove ${ingredient}`}
+        style={{ cursor: "pointer" }}
+      ></i>
     </div>
   ));
 
