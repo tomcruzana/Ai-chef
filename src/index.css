@@ -192,6 +192,7 @@ ul.ingredients-list > li {
     gap: 12px;
     padding: 0;
     width: 100%; /* Ensure the form takes full width */
+    margin-top: 20px; /* Add space above the form */
     margin-bottom: 20px; /* Add space below the form */
   }
 
