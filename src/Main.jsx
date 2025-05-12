@@ -23,7 +23,7 @@ export default function Main() {
 
   return (
     <main>
-      <div class="container">
+      <div className="container">
         <form action={addIngredient} className="add-ingredient-form">
           <input
             type="text"
