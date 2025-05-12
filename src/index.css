@@ -127,6 +127,12 @@ ul.ingredients-list > li {
   line-height: 28px;
   font-size: 1.125rem;
   font-weight: 400;
+  max-width: 600px;
+  margin: 32px auto 0;
+  padding: 0 16px;
+  text-align: left;
+  word-wrap: break-word; /* Ensure text wraps */
+  overflow-wrap: break-word; /* For extra compatibility */
 }
 
 .suggested-recipe-container ul li,
