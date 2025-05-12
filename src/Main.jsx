@@ -9,7 +9,11 @@ export default function Main() {
   const [recipe, setRecipe] = React.useState("");
   const [loading, setLoading] = React.useState(false);
 
-  
+  function addIngredient(formData) {
+    const newIngredient = formData.get("ingredient");
+    setIngredients((prevIngredients) => [...prevIngredients, newIngredient]);
+  }
+
   return (
     <main>
       <div class="container">
