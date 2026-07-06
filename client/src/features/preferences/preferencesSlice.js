@@ -7,7 +7,7 @@ const initialState = {
   servings: 2,
   allergies: "",
   dislikes: "",
-  strictMode: false,
+  strictMode: true,
 };
 
 const preferencesSlice = createSlice({

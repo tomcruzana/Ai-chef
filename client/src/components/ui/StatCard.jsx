@@ -1,8 +1,10 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
-export default function StatCard({ icon, label, value, helper }) {
+export default function StatCard({ icon, label, value, helper, onClick }) {
+  const Component = onClick ? "button" : "article";
+
   return (
-    <article className="stat-card">
+    <Component className={`stat-card ${onClick ? "stat-card-link" : ""}`} type={onClick ? "button" : undefined} onClick={onClick}>
       <div className="stat-icon">
         <FontAwesomeIcon icon={icon} />
       </div>
@@ -11,6 +13,6 @@ export default function StatCard({ icon, label, value, helper }) {
         <strong>{value}</strong>
         {helper && <span>{helper}</span>}
       </div>
-    </article>
+    </Component>
   );
 }

@@ -5,12 +5,14 @@ import { faCheck, faCopy, faEnvelope, faRotateRight, faSpinner, faTrash, faUtens
 import { fetchEmailSettings, fetchShoppingItems, removeShoppingItem, sendShoppingList, toggleShoppingItem } from "./shoppingListSlice";
 import { APP_LIMITS } from "../../app/limits";
 import { smoothScrollToAfterRender } from "../../app/smoothScroll";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
 
 export default function ShoppingListPage({ onNavigate }) {
   const dispatch = useDispatch();
   const { items, status, toggleStatus, deleteStatus, sendStatus, emailSettings, togglingId, deletingId, error, message } = useSelector((state) => state.shoppingList);
   const [copyStatus, setCopyStatus] = React.useState("");
   const [recipient, setRecipient] = React.useState("");
+  const [deleteTarget, setDeleteTarget] = React.useState(null);
   const statusRef = React.useRef(null);
   const isLoading = status === "loading";
   const isToggling = toggleStatus === "loading";
@@ -46,6 +48,17 @@ export default function ShoppingListPage({ onNavigate }) {
       smoothScrollToAfterRender(() => statusRef.current);
     } catch {
       smoothScrollToAfterRender(() => statusRef.current);
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+
+    try {
+      await dispatch(removeShoppingItem(deleteTarget.id)).unwrap();
+      setDeleteTarget(null);
+    } catch {
+      // The slice stores the user-facing error message.
     }
   }
 
@@ -117,12 +130,20 @@ export default function ShoppingListPage({ onNavigate }) {
               {togglingId === item.id ? <FontAwesomeIcon icon={faSpinner} spin /> : item.checked && <FontAwesomeIcon icon={faCheck} />}
             </button>
             <strong>{item.name}</strong>
-            <button className="icon-button danger" type="button" onClick={() => dispatch(removeShoppingItem(item.id))} aria-label={`Remove ${item.name}`} disabled={isDeleting}>
+            <button className="icon-button danger" type="button" onClick={() => setDeleteTarget(item)} aria-label={`Remove ${item.name}`} disabled={isDeleting}>
               <FontAwesomeIcon icon={deletingId === item.id ? faSpinner : faTrash} spin={deletingId === item.id} />
             </button>
           </div>
         ))}
       </div>
+      <ConfirmDialog
+        isOpen={Boolean(deleteTarget)}
+        title="Remove shopping item?"
+        message={deleteTarget ? `${deleteTarget.name} will be removed from your shopping list.` : ""}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

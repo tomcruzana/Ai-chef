@@ -21,10 +21,18 @@ export const loadSavedRecipe = createAsyncThunk("recipes/loadSavedRecipe", async
 export const saveGeneratedRecipe = createAsyncThunk(
   "recipes/saveGeneratedRecipe",
   async (_, { getState, rejectWithValue }) => {
-    const recipe = getState().recipes.generatedRecipe;
+    const { generatedRecipe: recipe, savedRecipes } = getState().recipes;
 
     if (!recipe) {
       return rejectWithValue("No generated recipe to save.");
+    }
+
+    const alreadySaved = savedRecipes.some((savedRecipe) => (
+      savedRecipe.title || ""
+    ).trim().toLowerCase() === (recipe.title || "").trim().toLowerCase());
+
+    if (alreadySaved) {
+      return rejectWithValue("This recipe is already saved.");
     }
 
     const response = await apiClient.post("/recipes", recipe);
@@ -56,6 +64,9 @@ const recipesSlice = createSlice({
   reducers: {
     clearRecipeError(state) {
       state.error = "";
+    },
+    clearGeneratedRecipe(state) {
+      state.generatedRecipe = null;
     },
   },
   extraReducers: (builder) => {
@@ -129,5 +140,5 @@ const recipesSlice = createSlice({
   },
 });
 
-export const { clearRecipeError } = recipesSlice.actions;
+export const { clearGeneratedRecipe, clearRecipeError } = recipesSlice.actions;
 export default recipesSlice.reducer;

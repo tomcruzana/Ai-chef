@@ -16,7 +16,9 @@ use AiChef\Services\RecipeSuggestionService;
 use AiChef\Services\SavedRecipeService;
 use AiChef\Services\ShoppingListService;
 
-define('AI_CHEF_BASE_PATH', dirname(__DIR__));
+if (!defined('AI_CHEF_BASE_PATH')) {
+    define('AI_CHEF_BASE_PATH', dirname(__DIR__));
+}
 
 spl_autoload_register(function (string $class): void {
     $prefix = 'AiChef\\';
@@ -33,43 +35,66 @@ spl_autoload_register(function (string $class): void {
     }
 });
 
-function ai_chef_load_env(string $path): void
-{
-    if (!is_file($path)) {
-        return;
-    }
-
-    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-
-    foreach ($lines ?: [] as $line) {
-        $line = trim($line);
-
-        if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) {
-            continue;
+if (!function_exists('ai_chef_load_env')) {
+    function ai_chef_load_env(string $path): void
+    {
+        if (!is_file($path)) {
+            return;
         }
 
-        [$name, $value] = array_map('trim', explode('=', $line, 2));
+        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
 
-        if ($name === '' || getenv($name) !== false) {
-            continue;
+        foreach ($lines ?: [] as $line) {
+            $line = trim($line);
+
+            if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) {
+                continue;
+            }
+
+            [$name, $value] = array_map('trim', explode('=', $line, 2));
+
+            if ($name === '' || getenv($name) !== false) {
+                continue;
+            }
+
+            $value = trim($value, "\"'");
+            putenv($name . '=' . $value);
+            $_ENV[$name] = $value;
+            $_SERVER[$name] = $value;
         }
-
-        $value = trim($value, "\"'");
-        putenv($name . '=' . $value);
-        $_ENV[$name] = $value;
-        $_SERVER[$name] = $value;
     }
 }
 
 ai_chef_load_env(AI_CHEF_BASE_PATH . DIRECTORY_SEPARATOR . '.env');
 
+if (!function_exists('ai_chef_guest_id')) {
+    function ai_chef_guest_id(): string
+    {
+        $rawSessionId = (string) ($_SERVER['HTTP_X_GUEST_SESSION'] ?? 'default');
+        $sessionId = preg_replace('/[^A-Za-z0-9_-]/', '', $rawSessionId) ?: 'default';
+
+        return substr($sessionId, 0, 80);
+    }
+}
+
+if (!function_exists('ai_chef_storage_path')) {
+    function ai_chef_storage_path(string $filename): string
+    {
+        return AI_CHEF_BASE_PATH
+            . DIRECTORY_SEPARATOR . 'storage'
+            . DIRECTORY_SEPARATOR . 'sessions'
+            . DIRECTORY_SEPARATOR . ai_chef_guest_id()
+            . DIRECTORY_SEPARATOR . $filename;
+    }
+}
+
 $router = new Router();
 $rateLimitService = new RateLimitService(
-    new JsonFileStorage(AI_CHEF_BASE_PATH . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'rate-limits.json')
+    new JsonFileStorage(ai_chef_storage_path('rate-limits.json'))
 );
 $healthController = new HealthController();
 $pantryController = new PantryController(new PantryService(
-    new JsonFileStorage(AI_CHEF_BASE_PATH . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'pantry.json')
+    new JsonFileStorage(ai_chef_storage_path('pantry.json'))
 ));
 $mockRecipeProvider = new RecipeSuggestionService();
 $aiProvider = strtolower((string) getenv('AI_PROVIDER'));
@@ -95,12 +120,12 @@ switch ($aiProvider) {
 }
 $recipeController = new RecipeController($recipeProvider, $rateLimitService);
 $savedRecipeController = new SavedRecipeController(new SavedRecipeService(
-    new JsonFileStorage(AI_CHEF_BASE_PATH . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'recipes.json'),
-    new JsonFileStorage(AI_CHEF_BASE_PATH . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'recipe-details.json')
+    new JsonFileStorage(ai_chef_storage_path('recipes.json')),
+    new JsonFileStorage(ai_chef_storage_path('recipe-details.json'))
 ));
 $shoppingListController = new ShoppingListController(
     new ShoppingListService(
-        new JsonFileStorage(AI_CHEF_BASE_PATH . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'shopping-list.json')
+        new JsonFileStorage(ai_chef_storage_path('shopping-list.json'))
     ),
     new EmailService(
         (string) getenv('MAIL_ENABLED'),
@@ -111,7 +136,7 @@ $shoppingListController = new ShoppingListController(
         (string) (getenv('MAIL_SMTP_PORT') ?: '587'),
         (string) getenv('MAIL_SMTP_USERNAME'),
         (string) getenv('MAIL_SMTP_PASSWORD'),
-        new JsonFileStorage(AI_CHEF_BASE_PATH . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'email-outbox.json')
+        new JsonFileStorage(ai_chef_storage_path('email-outbox.json'))
     )
 );
 

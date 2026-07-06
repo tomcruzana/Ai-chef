@@ -31,6 +31,10 @@ class SavedRecipeController
             return Response::json(['message' => 'You can save up to 10 favorite recipes. Delete one before saving another.'], 422);
         }
 
+        if ($this->savedRecipeService->titleExists($title)) {
+            return Response::json(['message' => 'This recipe is already saved.'], 422);
+        }
+
         return Response::json(['data' => $this->savedRecipeService->create($body)], 201);
     }
 

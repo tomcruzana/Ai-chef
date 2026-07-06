@@ -10,7 +10,7 @@ $frontendUrl = getenv('FRONTEND_URL') ?: 'http://localhost:3000';
 
 header('Access-Control-Allow-Origin: ' . $frontendUrl);
 header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Headers: Content-Type, X-Guest-Session');
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
     \AiChef\Core\Response::noContent()->send();

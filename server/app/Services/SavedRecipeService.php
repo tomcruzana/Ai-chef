@@ -32,6 +32,19 @@ class SavedRecipeService
         return null;
     }
 
+    public function titleExists(string $title): bool
+    {
+        $normalizedTitle = strtolower(trim($title));
+
+        foreach ($this->storage->all() as $recipe) {
+            if (strtolower(trim((string) ($recipe['title'] ?? ''))) === $normalizedTitle) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function create(array $data): array
     {
         $recipes = $this->storage->all();

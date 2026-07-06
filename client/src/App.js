@@ -7,12 +7,14 @@ import {
   faChevronUp,
   faHouse,
   faSliders,
+  faStar,
   faUtensils,
 } from "@fortawesome/free-solid-svg-icons";
 import Header from "./components/layout/Header";
 import Dashboard from "./features/dashboard/Dashboard";
 import PantryPage from "./features/pantry/PantryPage";
 import RecipeGeneratorPage from "./features/recipes/RecipeGeneratorPage";
+import FavoritesPage from "./features/recipes/FavoritesPage";
 import ShoppingListPage from "./features/shoppingList/ShoppingListPage";
 import PreferencesPanel from "./features/preferences/PreferencesPanel";
 import { fetchPantryItems } from "./features/pantry/pantrySlice";
@@ -24,6 +26,7 @@ import { smoothScrollToAfterRender } from "./app/smoothScroll";
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: faHouse },
   { id: "recipes", label: "Generate", icon: faUtensils },
+  { id: "favorites", label: "Favorites", icon: faStar },
   { id: "pantry", label: "Pantry", icon: faBasketShopping },
   { id: "shopping", label: "Shopping", icon: faCartShopping },
   { id: "preferences", label: "Preferences", icon: faSliders },
@@ -61,6 +64,7 @@ export default function App() {
   const viewMap = {
     dashboard: <Dashboard onNavigate={selectView} />,
     recipes: <RecipeGeneratorPage onNavigate={selectView} />,
+    favorites: <FavoritesPage onNavigate={selectView} />,
     pantry: <PantryPage onNavigate={selectView} />,
     shopping: <ShoppingListPage onNavigate={selectView} />,
     preferences: <PreferencesPanel />,

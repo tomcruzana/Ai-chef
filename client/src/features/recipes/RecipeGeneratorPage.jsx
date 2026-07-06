@@ -1,12 +1,13 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRight, faBasketShopping, faCartPlus, faFloppyDisk, faFolderOpen, faSpinner, faTrash, faWandMagicSparkles } from "@fortawesome/free-solid-svg-icons";
-import { deleteSavedRecipe, generateRecipe, loadSavedRecipe, saveGeneratedRecipe } from "./recipesSlice";
+import { faCartPlus, faFloppyDisk, faFolderOpen, faSpinner, faTrash, faWandMagicSparkles, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { clearGeneratedRecipe, deleteSavedRecipe, generateRecipe, loadSavedRecipe, saveGeneratedRecipe } from "./recipesSlice";
 import { addShoppingItems } from "../shoppingList/shoppingListSlice";
 import InstructionTimer, { getStepDurationSeconds } from "../../components/ui/InstructionTimer";
 import { APP_LIMITS } from "../../app/limits";
 import { smoothScrollToAfterRender } from "../../app/smoothScroll";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
 
 const generateLimitKey = "ai-chef-recipe-generations";
 
@@ -41,6 +42,9 @@ export default function RecipeGeneratorPage({ onNavigate }) {
   const isAddingShoppingItems = shoppingAddStatus === "loading";
   const strictModeBlocked = preferences.strictMode && ingredientNames.length < 3;
   const isSavedLimitReached = savedRecipes.length >= APP_LIMITS.maxSavedRecipes;
+  const isGeneratedRecipeSaved = savedRecipes.some((recipe) => (
+    recipe.title || ""
+  ).trim().toLowerCase() === (generatedRecipe?.title || "").trim().toLowerCase());
   const [generateCount, setGenerateCount] = React.useState(readGenerateUsage);
   const generateRemaining = Math.max(0, APP_LIMITS.maxRecipeGenerationsPerDay - generateCount);
   const isGenerateLimitReached = generateRemaining === 0;
@@ -48,6 +52,7 @@ export default function RecipeGeneratorPage({ onNavigate }) {
   const missingIngredients = generatedRecipe?.missingIngredients || [];
   const canAddMissingIngredients = missingIngredients.length > 0 && shoppingRemaining > 0;
   const [completedSteps, setCompletedSteps] = React.useState({});
+  const [deleteTarget, setDeleteTarget] = React.useState(null);
   const recipeRef = React.useRef(null);
   const favoritesRef = React.useRef(null);
 
@@ -102,6 +107,17 @@ export default function RecipeGeneratorPage({ onNavigate }) {
     setCompletedSteps((current) => ({ ...current, [index]: !current[index] }));
   }
 
+  async function confirmDeleteFavorite() {
+    if (!deleteTarget) return;
+
+    try {
+      await dispatch(deleteSavedRecipe(deleteTarget.id)).unwrap();
+      setDeleteTarget(null);
+    } catch {
+      // The slice stores the user-facing error message.
+    }
+  }
+
   return (
     <div className="page-stack">
       <div className="page-heading">
@@ -135,34 +151,6 @@ export default function RecipeGeneratorPage({ onNavigate }) {
         </button>
       </div>
 
-      {!generatedRecipe && ingredientNames.length > 0 && (
-        <div className="guide-card">
-          <div>
-            <p className="eyebrow">Suggested next step</p>
-            <strong>Generate a recipe from your pantry.</strong>
-            <p>After the recipe appears, you can save it or send missing ingredients to Shopping.</p>
-          </div>
-          <button className="secondary-button" type="button" onClick={handleGenerate} disabled={isLoading || strictModeBlocked || isGenerateLimitReached}>
-            <FontAwesomeIcon icon={faWandMagicSparkles} />
-            Generate
-          </button>
-        </div>
-      )}
-
-      {!generatedRecipe && ingredientNames.length === 0 && (
-        <div className="guide-card">
-          <div>
-            <p className="eyebrow">Start here</p>
-            <strong>Add pantry ingredients first.</strong>
-            <p>AI Chef needs ingredients before it can suggest a recipe.</p>
-          </div>
-          <button className="primary-button" type="button" onClick={() => onNavigate("pantry")}>
-            <FontAwesomeIcon icon={faBasketShopping} />
-            Pantry
-          </button>
-        </div>
-      )}
-
       {error && <div className="error-banner">{error}</div>}
 
       {generatedRecipe && (
@@ -173,12 +161,18 @@ export default function RecipeGeneratorPage({ onNavigate }) {
               <h3>{generatedRecipe.title}</h3>
               <p>{generatedRecipe.description}</p>
             </div>
-            <button className="secondary-button" type="button" onClick={handleSaveRecipe} disabled={isSaving || isSavedLimitReached}>
-              <FontAwesomeIcon icon={isSaving ? faSpinner : faFloppyDisk} spin={isSaving} />
-              {isSaving ? "Saving..." : "Save"}
-            </button>
+            <div className="recipe-actions">
+              <button className="save-button" type="button" onClick={handleSaveRecipe} disabled={isSaving || isSavedLimitReached || isGeneratedRecipeSaved}>
+                <FontAwesomeIcon icon={isSaving ? faSpinner : faFloppyDisk} spin={isSaving} />
+                {isSaving ? "Saving..." : isGeneratedRecipeSaved ? "Saved" : "Save"}
+              </button>
+              <button className="icon-button" type="button" onClick={() => dispatch(clearGeneratedRecipe())} aria-label="Close generated recipe">
+                <FontAwesomeIcon icon={faXmark} />
+              </button>
+            </div>
           </div>
-          {isSavedLimitReached && <p className="limit-caption">You can save up to {APP_LIMITS.maxSavedRecipes} favorite recipes. Delete one to save another.</p>}
+          {isGeneratedRecipeSaved && <p className="limit-caption">This recipe is already saved.</p>}
+          {!isGeneratedRecipeSaved && isSavedLimitReached && <p className="limit-caption">You can save up to {APP_LIMITS.maxSavedRecipes} favorite recipes. Delete one to save another.</p>}
 
           <div className="recipe-meta">
             <span>{generatedRecipe.prepTime || 10} min prep</span>
@@ -188,7 +182,18 @@ export default function RecipeGeneratorPage({ onNavigate }) {
           </div>
 
           <h4>Ingredients</h4>
-          <ul>{(generatedRecipe.ingredients || []).map((item) => <li key={item}>{item}</li>)}</ul>
+          <ul className="ingredient-list">
+            {(generatedRecipe.ingredients || []).map((item) => {
+              const isMissing = missingIngredients.some((missingItem) => missingItem.toLowerCase() === item.toLowerCase());
+
+              return (
+                <li className={isMissing ? "missing-ingredient-text" : ""} key={item}>
+                  {item}
+                  {isMissing && <span className="missing-label">missing</span>}
+                </li>
+              );
+            })}
+          </ul>
 
           <h4>Instructions</h4>
           <ol className="instruction-list">
@@ -210,7 +215,11 @@ export default function RecipeGeneratorPage({ onNavigate }) {
           {missingIngredients.length > 0 && (
             <div className="missing-box">
               <strong>Missing ingredients</strong>
-              <p>{missingIngredients.join(", ")}</p>
+              <div className="missing-pill-row">
+                {missingIngredients.map((item) => (
+                  <span className="missing-pill" key={item}>{item} <em>missing</em></span>
+                ))}
+              </div>
               <p className="limit-caption">
                 Shopping list space: {shoppingItems.length} of {APP_LIMITS.maxShoppingItems} items used.
               </p>
@@ -221,19 +230,6 @@ export default function RecipeGeneratorPage({ onNavigate }) {
             </div>
           )}
 
-          {missingIngredients.length === 0 && (
-            <div className="guide-card compact">
-              <div>
-                <p className="eyebrow">Next step</p>
-                <strong>Save this recipe if it is a keeper.</strong>
-                <p>You can reopen saved favorites from this page any time.</p>
-              </div>
-              <button className="secondary-button" type="button" onClick={handleSaveRecipe} disabled={isSaving || isSavedLimitReached}>
-                <FontAwesomeIcon icon={faArrowRight} />
-                Save
-              </button>
-            </div>
-          )}
         </article>
       )}
 
@@ -258,13 +254,21 @@ export default function RecipeGeneratorPage({ onNavigate }) {
                 <FontAwesomeIcon icon={openingId === recipe.id ? faSpinner : faFolderOpen} spin={openingId === recipe.id} />
                 Open
               </button>
-              <button className="icon-button danger" type="button" onClick={() => dispatch(deleteSavedRecipe(recipe.id))} aria-label={`Delete ${recipe.title}`} disabled={isDeleting || isOpening}>
+              <button className="icon-button danger" type="button" onClick={() => setDeleteTarget(recipe)} aria-label={`Delete ${recipe.title}`} disabled={isDeleting || isOpening}>
                 <FontAwesomeIcon icon={deletingId === recipe.id ? faSpinner : faTrash} spin={deletingId === recipe.id} />
               </button>
             </div>
           </div>
         ))}
       </div>
+      <ConfirmDialog
+        isOpen={Boolean(deleteTarget)}
+        title="Delete favorite?"
+        message={deleteTarget ? `${deleteTarget.title} will be removed from Favorites.` : ""}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDeleteFavorite}
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

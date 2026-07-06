@@ -31,9 +31,9 @@ export default function Dashboard({ onNavigate }) {
       </section>
 
       <section className="stats-grid" aria-label="AI Chef summary">
-        <StatCard icon={faBasketShopping} label="Pantry items" value={pantryCount} helper="Ready for recipe matching" />
-        <StatCard icon={faUtensils} label="Saved recipes" value={savedRecipesCount} helper="Favorites and history" />
-        <StatCard icon={faCartShopping} label="Shopping items" value={shoppingCount} helper="Missing ingredients" />
+        <StatCard icon={faBasketShopping} label="Pantry items" value={pantryCount} helper="Ready for recipe matching" onClick={() => onNavigate("pantry")} />
+        <StatCard icon={faUtensils} label="Saved recipes" value={savedRecipesCount} helper="Favorites and history" onClick={() => onNavigate("favorites")} />
+        <StatCard icon={faCartShopping} label="Shopping items" value={shoppingCount} helper="Missing ingredients" onClick={() => onNavigate("shopping")} />
       </section>
     </div>
   );

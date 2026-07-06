@@ -5,11 +5,13 @@ import { faCarrot, faRotateRight, faSpinner, faTrash } from "@fortawesome/free-s
 import { createPantryItem, deletePantryItem, fetchPantryItems } from "./pantrySlice";
 import { APP_LIMITS } from "../../app/limits";
 import { smoothScrollToAfterRender } from "../../app/smoothScroll";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
 
-export default function PantryPage() {
+export default function PantryPage({ onNavigate }) {
   const dispatch = useDispatch();
   const { items, status, saveStatus, deleteStatus, deletingId, error } = useSelector((state) => state.pantry);
   const [form, setForm] = React.useState({ name: "", quantity: "" });
+  const [deleteTarget, setDeleteTarget] = React.useState(null);
   const formRef = React.useRef(null);
   const isLoading = status === "loading";
   const isSaving = saveStatus === "loading";
@@ -28,6 +30,17 @@ export default function PantryPage() {
       await dispatch(createPantryItem(form)).unwrap();
       setForm({ name: "", quantity: "" });
       smoothScrollToAfterRender(() => formRef.current);
+    } catch {
+      // The slice stores the user-facing error message.
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+
+    try {
+      await dispatch(deletePantryItem(deleteTarget.id)).unwrap();
+      setDeleteTarget(null);
     } catch {
       // The slice stores the user-facing error message.
     }
@@ -63,7 +76,7 @@ export default function PantryPage() {
               <strong>{item.name}</strong>
               <span>{item.category} {item.quantity && `- ${item.quantity}${item.unit ? ` ${item.unit}` : ""}`}</span>
             </div>
-            <button className="icon-button danger" type="button" onClick={() => dispatch(deletePantryItem(item.id))} aria-label={`Remove ${item.name}`} disabled={isDeleting}>
+            <button className="icon-button danger" type="button" onClick={() => setDeleteTarget(item)} aria-label={`Remove ${item.name}`} disabled={isDeleting}>
               <FontAwesomeIcon icon={deletingId === item.id ? faSpinner : faTrash} spin={deletingId === item.id} />
             </button>
           </div>
@@ -77,13 +90,34 @@ export default function PantryPage() {
         </label>
         <label>
           Quantity
-          <input name="quantity" value={form.quantity} onChange={updateField} placeholder="2" disabled={isSaving} />
+          <input name="quantity" value={form.quantity} onChange={updateField} placeholder="1" disabled={isSaving} />
         </label>
         <button className="primary-button" type="submit" disabled={isSaving || !form.name.trim() || isAtLimit}>
           <FontAwesomeIcon icon={isSaving ? faSpinner : faCarrot} spin={isSaving} />
           {isSaving ? "Adding..." : "Add item"}
         </button>
       </form>
+
+      {items.length >= 3 && (
+        <div className="guide-card compact">
+          <div>
+            <p className="eyebrow">Ready</p>
+            <strong>You have enough pantry items.</strong>
+            <p>Generate a recipe using only what you have on hand.</p>
+          </div>
+          <button className="primary-button" type="button" onClick={() => onNavigate("recipes")}>
+            Generate
+          </button>
+        </div>
+      )}
+      <ConfirmDialog
+        isOpen={Boolean(deleteTarget)}
+        title="Remove ingredient?"
+        message={deleteTarget ? `${deleteTarget.name} will be removed from your pantry.` : ""}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        isLoading={isDeleting}
+      />
     </div>
   );
 }
