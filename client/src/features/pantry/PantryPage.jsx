@@ -4,11 +4,13 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCarrot, faRotateRight, faSpinner, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { createPantryItem, deletePantryItem, fetchPantryItems } from "./pantrySlice";
 import { APP_LIMITS } from "../../app/limits";
+import { smoothScrollToAfterRender } from "../../app/smoothScroll";
 
 export default function PantryPage() {
   const dispatch = useDispatch();
   const { items, status, saveStatus, deleteStatus, deletingId, error } = useSelector((state) => state.pantry);
   const [form, setForm] = React.useState({ name: "", quantity: "" });
+  const formRef = React.useRef(null);
   const isLoading = status === "loading";
   const isSaving = saveStatus === "loading";
   const isDeleting = deleteStatus === "loading";
@@ -25,6 +27,7 @@ export default function PantryPage() {
     try {
       await dispatch(createPantryItem(form)).unwrap();
       setForm({ name: "", quantity: "" });
+      smoothScrollToAfterRender(() => formRef.current);
     } catch {
       // The slice stores the user-facing error message.
     }
@@ -47,21 +50,6 @@ export default function PantryPage() {
         </div>
       )}
 
-      <form className="card form-grid pantry-form-grid" onSubmit={handleSubmit}>
-        <label>
-          Ingredient
-          <input name="name" value={form.name} onChange={updateField} placeholder="e.g. lettuce" maxLength="40" disabled={isSaving} />
-        </label>
-        <label>
-          Quantity
-          <input name="quantity" value={form.quantity} onChange={updateField} placeholder="2" disabled={isSaving} />
-        </label>
-        <button className="primary-button" type="submit" disabled={isSaving || !form.name.trim() || isAtLimit}>
-          <FontAwesomeIcon icon={isSaving ? faSpinner : faCarrot} spin={isSaving} />
-          {isSaving ? "Adding..." : "Add item"}
-        </button>
-      </form>
-
       <div className="card list-card">
         <div className="limit-caption">
           {items.length} of {APP_LIMITS.maxPantryItems} pantry ingredients used
@@ -81,6 +69,21 @@ export default function PantryPage() {
           </div>
         ))}
       </div>
+
+      <form className="card form-grid pantry-form-grid" onSubmit={handleSubmit} ref={formRef}>
+        <label>
+          Ingredient
+          <input name="name" value={form.name} onChange={updateField} placeholder="e.g. lettuce" maxLength="40" disabled={isSaving} />
+        </label>
+        <label>
+          Quantity
+          <input name="quantity" value={form.quantity} onChange={updateField} placeholder="2" disabled={isSaving} />
+        </label>
+        <button className="primary-button" type="submit" disabled={isSaving || !form.name.trim() || isAtLimit}>
+          <FontAwesomeIcon icon={isSaving ? faSpinner : faCarrot} spin={isSaving} />
+          {isSaving ? "Adding..." : "Add item"}
+        </button>
+      </form>
     </div>
   );
 }

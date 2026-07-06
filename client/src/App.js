@@ -19,6 +19,7 @@ import { fetchPantryItems } from "./features/pantry/pantrySlice";
 import { useDispatch } from "react-redux";
 import { fetchSavedRecipes } from "./features/recipes/recipesSlice";
 import { fetchShoppingItems } from "./features/shoppingList/shoppingListSlice";
+import { smoothScrollToAfterRender } from "./app/smoothScroll";
 
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: faHouse },
@@ -33,6 +34,7 @@ export default function App() {
   const [activeView, setActiveView] = React.useState("dashboard");
   const [theme, setTheme] = React.useState(() => localStorage.getItem("ai-chef-theme") || "blue");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const contentRef = React.useRef(null);
 
   React.useEffect(() => {
     dispatch(fetchPantryItems());
@@ -48,22 +50,21 @@ export default function App() {
     });
   }
 
-  const currentYear = new Date().getFullYear();
-
-  const viewMap = {
-    dashboard: <Dashboard onNavigate={setActiveView} />,
-    recipes: <RecipeGeneratorPage onNavigate={setActiveView} />,
-    pantry: <PantryPage />,
-    shopping: <ShoppingListPage />,
-    preferences: <PreferencesPanel />,
-  };
-
   function selectView(view) {
     setActiveView(view);
     setIsMobileMenuOpen(false);
+    smoothScrollToAfterRender(() => contentRef.current);
   }
 
+  const currentYear = new Date().getFullYear();
   const activeNavItem = navItems.find((item) => item.id === activeView);
+  const viewMap = {
+    dashboard: <Dashboard onNavigate={selectView} />,
+    recipes: <RecipeGeneratorPage onNavigate={selectView} />,
+    pantry: <PantryPage onNavigate={selectView} />,
+    shopping: <ShoppingListPage onNavigate={selectView} />,
+    preferences: <PreferencesPanel />,
+  };
 
   return (
     <div className="app-shell" data-theme={theme}>
@@ -93,7 +94,7 @@ export default function App() {
             ))}
           </div>
         </aside>
-        <section className="content-panel">{viewMap[activeView]}</section>
+        <section className="content-panel" ref={contentRef}>{viewMap[activeView]}</section>
       </main>
       <footer className="site-footer">
         <span>AI Chef</span>

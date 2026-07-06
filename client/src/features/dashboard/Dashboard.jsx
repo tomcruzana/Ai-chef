@@ -12,6 +12,7 @@ export default function Dashboard({ onNavigate }) {
   const pantryCount = useSelector((state) => state.pantry.items.length);
   const savedRecipesCount = useSelector((state) => state.recipes.savedRecipes.length);
   const shoppingCount = useSelector((state) => state.shoppingList.items.length);
+  const hasPantryItems = pantryCount > 0;
 
   return (
     <div className="page-stack">
@@ -22,8 +23,9 @@ export default function Dashboard({ onNavigate }) {
           <p>
             Manage pantry items, generate recipe ideas, save favorites, and build a shopping list from missing ingredients.
           </p>
-          <button className="primary-button" type="button" onClick={() => onNavigate("recipes")}>
-            <FontAwesomeIcon icon={faWandMagicSparkles} /> Generate a recipe
+          <button className="primary-button" type="button" onClick={() => onNavigate(hasPantryItems ? "recipes" : "pantry")}>
+            <FontAwesomeIcon icon={hasPantryItems ? faWandMagicSparkles : faBasketShopping} />
+            {hasPantryItems ? "Generate a recipe" : "Add pantry items"}
           </button>
         </div>
       </section>

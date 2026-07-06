@@ -1,15 +1,17 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck, faCopy, faEnvelope, faRotateRight, faSpinner, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faCheck, faCopy, faEnvelope, faRotateRight, faSpinner, faTrash, faUtensils } from "@fortawesome/free-solid-svg-icons";
 import { fetchEmailSettings, fetchShoppingItems, removeShoppingItem, sendShoppingList, toggleShoppingItem } from "./shoppingListSlice";
 import { APP_LIMITS } from "../../app/limits";
+import { smoothScrollToAfterRender } from "../../app/smoothScroll";
 
-export default function ShoppingListPage() {
+export default function ShoppingListPage({ onNavigate }) {
   const dispatch = useDispatch();
   const { items, status, toggleStatus, deleteStatus, sendStatus, emailSettings, togglingId, deletingId, error, message } = useSelector((state) => state.shoppingList);
   const [copyStatus, setCopyStatus] = React.useState("");
   const [recipient, setRecipient] = React.useState("");
+  const statusRef = React.useRef(null);
   const isLoading = status === "loading";
   const isToggling = toggleStatus === "loading";
   const isDeleting = deleteStatus === "loading";
@@ -30,9 +32,20 @@ export default function ShoppingListPage() {
     try {
       await navigator.clipboard.writeText(listText);
       setCopyStatus("Shopping list copied.");
+      smoothScrollToAfterRender(() => statusRef.current);
       window.setTimeout(() => setCopyStatus(""), 2500);
     } catch {
       setCopyStatus("Copy failed. Select and copy the list manually.");
+      smoothScrollToAfterRender(() => statusRef.current);
+    }
+  }
+
+  async function handleSendShoppingList() {
+    try {
+      await dispatch(sendShoppingList(recipient)).unwrap();
+      smoothScrollToAfterRender(() => statusRef.current);
+    } catch {
+      smoothScrollToAfterRender(() => statusRef.current);
     }
   }
 
@@ -63,14 +76,16 @@ export default function ShoppingListPage() {
           <button className="secondary-button" type="button" onClick={copyShoppingList} disabled={items.length === 0}>
             <FontAwesomeIcon icon={faCopy} /> Copy All
           </button>
-          <button className="primary-button" type="button" onClick={() => dispatch(sendShoppingList(recipient))} disabled={items.length === 0 || isSending}>
+          <button className="primary-button" type="button" onClick={handleSendShoppingList} disabled={items.length === 0 || isSending}>
             <FontAwesomeIcon icon={isSending ? faSpinner : faEnvelope} spin={isSending} />
             {isSending ? "Sending..." : "Send"}
           </button>
         </div>
       </div>
 
-      {(copyStatus || message) && <div className="success-banner">{copyStatus || message}</div>}
+      <div ref={statusRef}>
+        {(copyStatus || message) && <div className="success-banner">{copyStatus || message}</div>}
+      </div>
 
       {error && (
         <div className="error-banner">
@@ -83,7 +98,19 @@ export default function ShoppingListPage() {
 
       <div className="card list-card">
         {isLoading && <p className="empty-state">Loading shopping list...</p>}
-        {!isLoading && items.length === 0 && <p className="empty-state">No shopping items yet. Generate a recipe and add missing ingredients.</p>}
+        {!isLoading && items.length === 0 && (
+          <div className="guide-card compact">
+            <div>
+              <p className="eyebrow">Next step</p>
+              <strong>No shopping items yet.</strong>
+              <p>Generate a recipe and add any missing ingredients here.</p>
+            </div>
+            <button className="primary-button" type="button" onClick={() => onNavigate("recipes")}>
+              <FontAwesomeIcon icon={faUtensils} />
+              Generate
+            </button>
+          </div>
+        )}
         {items.map((item) => (
           <div className={`list-row shopping-row ${item.checked ? "checked" : ""}`} key={item.id}>
             <button className="check-button" type="button" onClick={() => dispatch(toggleShoppingItem(item.id))} aria-label={`Toggle ${item.name}`} disabled={isToggling}>
