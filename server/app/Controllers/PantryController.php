@@ -2,6 +2,7 @@
 
 namespace AiChef\Controllers;
 
+use AiChef\Core\AppLimits;
 use AiChef\Core\Request;
 use AiChef\Core\Response;
 use AiChef\Services\PantryService;
@@ -24,6 +25,10 @@ class PantryController
 
         if ($name === '') {
             return Response::json(['message' => 'Ingredient name is required.'], 422);
+        }
+
+        if (count($this->pantryService->all()) >= AppLimits::MAX_PANTRY_ITEMS) {
+            return Response::json(['message' => 'Your pantry can hold up to 40 ingredients. Remove one before adding another.'], 422);
         }
 
         return Response::json(['data' => $this->pantryService->create($body)], 201);

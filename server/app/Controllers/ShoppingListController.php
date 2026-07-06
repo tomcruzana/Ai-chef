@@ -2,6 +2,7 @@
 
 namespace AiChef\Controllers;
 
+use AiChef\Core\AppLimits;
 use AiChef\Core\Request;
 use AiChef\Core\Response;
 use AiChef\Services\EmailService;
@@ -26,7 +27,14 @@ class ShoppingListController
     {
         $body = $request->body();
         $items = $body['items'] ?? [$body];
-        $createdItems = $this->shoppingListService->createMany(is_array($items) ? $items : []);
+        $createdItems = $this->shoppingListService->createMany(
+            is_array($items) ? $items : [],
+            AppLimits::MAX_SHOPPING_ITEMS
+        );
+
+        if ($createdItems === [] && count($this->shoppingListService->all()) >= AppLimits::MAX_SHOPPING_ITEMS) {
+            return Response::json(['message' => 'Your shopping list can hold up to 30 items. Remove one before adding more.'], 422);
+        }
 
         return Response::json(['data' => $createdItems], 201);
     }

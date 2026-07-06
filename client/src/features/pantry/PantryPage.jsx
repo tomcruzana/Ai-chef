@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCarrot, faRotateRight, faSpinner, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { createPantryItem, deletePantryItem, fetchPantryItems } from "./pantrySlice";
+import { APP_LIMITS } from "../../app/limits";
 
 export default function PantryPage() {
   const dispatch = useDispatch();
@@ -11,6 +12,7 @@ export default function PantryPage() {
   const isLoading = status === "loading";
   const isSaving = saveStatus === "loading";
   const isDeleting = deleteStatus === "loading";
+  const isAtLimit = items.length >= APP_LIMITS.maxPantryItems;
 
   function updateField(event) {
     setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
@@ -18,7 +20,7 @@ export default function PantryPage() {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    if (!form.name.trim()) return;
+    if (!form.name.trim() || isAtLimit) return;
 
     try {
       await dispatch(createPantryItem(form)).unwrap();
@@ -33,7 +35,7 @@ export default function PantryPage() {
       <div className="page-heading">
         <p className="eyebrow">Pantry manager</p>
         <h2>Ingredients on hand</h2>
-        <p>Add the ingredients the AI chef can use when creating recipe suggestions.</p>
+        <p>Add up to {APP_LIMITS.maxPantryItems} ingredients the AI chef can use when creating recipe suggestions.</p>
       </div>
 
       {error && (
@@ -54,13 +56,17 @@ export default function PantryPage() {
           Quantity
           <input name="quantity" value={form.quantity} onChange={updateField} placeholder="2" disabled={isSaving} />
         </label>
-        <button className="primary-button" type="submit" disabled={isSaving || !form.name.trim()}>
+        <button className="primary-button" type="submit" disabled={isSaving || !form.name.trim() || isAtLimit}>
           <FontAwesomeIcon icon={isSaving ? faSpinner : faCarrot} spin={isSaving} />
           {isSaving ? "Adding..." : "Add item"}
         </button>
       </form>
 
       <div className="card list-card">
+        <div className="limit-caption">
+          {items.length} of {APP_LIMITS.maxPantryItems} pantry ingredients used
+        </div>
+        {isAtLimit && <p className="empty-state">Pantry limit reached. Remove an ingredient before adding another.</p>}
         {isLoading && <p className="empty-state">Loading pantry items...</p>}
         {!isLoading && items.length === 0 && <p className="empty-state">No pantry items yet.</p>}
         {items.map((item) => (

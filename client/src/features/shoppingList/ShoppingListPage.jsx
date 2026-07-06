@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faCopy, faEnvelope, faRotateRight, faSpinner, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { fetchEmailSettings, fetchShoppingItems, removeShoppingItem, sendShoppingList, toggleShoppingItem } from "./shoppingListSlice";
+import { APP_LIMITS } from "../../app/limits";
 
 export default function ShoppingListPage() {
   const dispatch = useDispatch();
@@ -40,13 +41,14 @@ export default function ShoppingListPage() {
       <div className="page-heading">
         <p className="eyebrow">Shopping list</p>
         <h2>Missing ingredients</h2>
-        <p>Generated recipes can add missing ingredients here.</p>
+        <p>Generated recipes can add up to {APP_LIMITS.maxShoppingItems} missing ingredients here.</p>
       </div>
 
       <div className="card action-card">
         <div>
           <strong>{items.length} shopping items</strong>
           <p>{items.length === 0 ? "Your shopping list is empty." : "Copy or send the full list when you are ready."}</p>
+          <p className="limit-caption">{items.length} of {APP_LIMITS.maxShoppingItems} shopping items used.</p>
         </div>
         <label className="email-field">
           Recipient

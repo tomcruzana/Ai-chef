@@ -11,6 +11,7 @@ use AiChef\Services\JsonFileStorage;
 use AiChef\Services\MistralRecipeSuggestionService;
 use AiChef\Services\OpenAiRecipeSuggestionService;
 use AiChef\Services\PantryService;
+use AiChef\Services\RateLimitService;
 use AiChef\Services\RecipeSuggestionService;
 use AiChef\Services\SavedRecipeService;
 use AiChef\Services\ShoppingListService;
@@ -63,6 +64,9 @@ function ai_chef_load_env(string $path): void
 ai_chef_load_env(AI_CHEF_BASE_PATH . DIRECTORY_SEPARATOR . '.env');
 
 $router = new Router();
+$rateLimitService = new RateLimitService(
+    new JsonFileStorage(AI_CHEF_BASE_PATH . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'rate-limits.json')
+);
 $healthController = new HealthController();
 $pantryController = new PantryController(new PantryService(
     new JsonFileStorage(AI_CHEF_BASE_PATH . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'pantry.json')
@@ -89,7 +93,7 @@ switch ($aiProvider) {
         $recipeProvider = $mockRecipeProvider;
         break;
 }
-$recipeController = new RecipeController($recipeProvider);
+$recipeController = new RecipeController($recipeProvider, $rateLimitService);
 $savedRecipeController = new SavedRecipeController(new SavedRecipeService(
     new JsonFileStorage(AI_CHEF_BASE_PATH . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'recipes.json'),
     new JsonFileStorage(AI_CHEF_BASE_PATH . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'recipe-details.json')

@@ -2,7 +2,9 @@ import React from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBasketShopping,
+  faBars,
   faCartShopping,
+  faChevronUp,
   faHouse,
   faSliders,
   faUtensils,
@@ -30,6 +32,7 @@ export default function App() {
   const dispatch = useDispatch();
   const [activeView, setActiveView] = React.useState("dashboard");
   const [theme, setTheme] = React.useState(() => localStorage.getItem("ai-chef-theme") || "blue");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   React.useEffect(() => {
     dispatch(fetchPantryItems());
@@ -45,6 +48,8 @@ export default function App() {
     });
   }
 
+  const currentYear = new Date().getFullYear();
+
   const viewMap = {
     dashboard: <Dashboard onNavigate={setActiveView} />,
     recipes: <RecipeGeneratorPage onNavigate={setActiveView} />,
@@ -53,25 +58,48 @@ export default function App() {
     preferences: <PreferencesPanel />,
   };
 
+  function selectView(view) {
+    setActiveView(view);
+    setIsMobileMenuOpen(false);
+  }
+
+  const activeNavItem = navItems.find((item) => item.id === activeView);
+
   return (
     <div className="app-shell" data-theme={theme}>
       <Header theme={theme} onToggleTheme={toggleTheme} />
       <main className="app-main">
         <aside className="sidebar" aria-label="Main navigation">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              className={`nav-button ${activeView === item.id ? "active" : ""}`}
-              onClick={() => setActiveView(item.id)}
-              type="button"
-            >
-              <FontAwesomeIcon icon={item.icon} />
-              <span>{item.label}</span>
-            </button>
-          ))}
+          <button
+            className="mobile-menu-toggle"
+            type="button"
+            onClick={() => setIsMobileMenuOpen((current) => !current)}
+            aria-expanded={isMobileMenuOpen}
+          >
+            <span>{activeNavItem?.label || "Menu"}</span>
+            <FontAwesomeIcon icon={isMobileMenuOpen ? faChevronUp : faBars} aria-hidden="true" />
+          </button>
+          <div className={`nav-scroll ${isMobileMenuOpen ? "open" : ""}`}>
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                className={`nav-button ${activeView === item.id ? "active" : ""}`}
+                onClick={() => selectView(item.id)}
+                type="button"
+              >
+                <FontAwesomeIcon icon={item.icon} />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
         </aside>
         <section className="content-panel">{viewMap[activeView]}</section>
       </main>
+      <footer className="site-footer">
+        <span>AI Chef</span>
+        <span>&copy; {currentYear}</span>
+        <span>Made by Thomas Cruzana</span>
+      </footer>
     </div>
   );
 }

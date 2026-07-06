@@ -2,6 +2,7 @@
 
 namespace AiChef\Controllers;
 
+use AiChef\Core\AppLimits;
 use AiChef\Core\Request;
 use AiChef\Core\Response;
 use AiChef\Services\SavedRecipeService;
@@ -24,6 +25,10 @@ class SavedRecipeController
 
         if ($title === '') {
             return Response::json(['message' => 'Recipe title is required.'], 422);
+        }
+
+        if (count($this->savedRecipeService->all()) >= AppLimits::MAX_SAVED_RECIPES) {
+            return Response::json(['message' => 'You can save up to 10 favorite recipes. Delete one before saving another.'], 422);
         }
 
         return Response::json(['data' => $this->savedRecipeService->create($body)], 201);
