@@ -3,17 +3,17 @@ import { apiClient } from "../../app/apiClient";
 
 export const fetchShoppingItems = createAsyncThunk("shoppingList/fetchShoppingItems", async () => {
   const response = await apiClient.get("/shopping-list");
-  return response.data || [];
+  return response?.data || [];
 });
 
 export const addShoppingItems = createAsyncThunk("shoppingList/addShoppingItems", async (items) => {
   const response = await apiClient.post("/shopping-list", { items: Array.isArray(items) ? items : [] });
-  return response.data || [];
+  return response?.data || [];
 });
 
 export const toggleShoppingItem = createAsyncThunk("shoppingList/toggleShoppingItem", async (id) => {
   const response = await apiClient.patch(`/shopping-list/${id}/toggle`);
-  return response.data;
+  return response?.data;
 });
 
 export const removeShoppingItem = createAsyncThunk("shoppingList/removeShoppingItem", async (id) => {
@@ -23,7 +23,7 @@ export const removeShoppingItem = createAsyncThunk("shoppingList/removeShoppingI
 
 export const fetchEmailSettings = createAsyncThunk("shoppingList/fetchEmailSettings", async () => {
   const response = await apiClient.get("/shopping-list/email-settings");
-  return response.data || { enabled: false, recipient: "" };
+  return response?.data || { enabled: false, recipient: "" };
 });
 
 export const sendShoppingList = createAsyncThunk(
@@ -31,7 +31,7 @@ export const sendShoppingList = createAsyncThunk(
   async (recipient, { rejectWithValue }) => {
     try {
       const response = await apiClient.post("/shopping-list/send", { recipient });
-      return response.data;
+      return response?.data;
     } catch (error) {
       return rejectWithValue(error.message || "Email could not be sent.");
     }

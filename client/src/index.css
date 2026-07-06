@@ -524,6 +524,13 @@ input::placeholder {
   width: 42px;
 }
 
+.header-actions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+
 .dialog-actions {
   display: flex;
   gap: 10px;
@@ -584,6 +591,11 @@ input::placeholder {
     align-items: flex-start;
     flex-direction: column;
     padding: 20px 16px;
+  }
+
+  .header-actions {
+    justify-content: space-between;
+    width: 100%;
   }
 
   .brand-mark {

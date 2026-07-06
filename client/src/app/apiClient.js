@@ -3,14 +3,22 @@ const API_BASE_URL =
   (process.env.NODE_ENV === "production" ? "/api" : "http://localhost:8000/api");
 const GUEST_SESSION_KEY = "ai-chef-guest-session";
 
-function getGuestSessionId() {
+function createGuestSessionId() {
+  if (window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+
+  return `guest-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+export function getGuestSessionId() {
   const existingSessionId = localStorage.getItem(GUEST_SESSION_KEY);
 
   if (existingSessionId) {
     return existingSessionId;
   }
 
-  const sessionId = window.crypto?.randomUUID?.() || `guest-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const sessionId = createGuestSessionId();
   localStorage.setItem(GUEST_SESSION_KEY, sessionId);
 
   return sessionId;
@@ -29,7 +37,14 @@ async function request(path, options = {}) {
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(data?.message || "Request failed. Please try again.");
+    const error = new Error(data?.message || "Request failed. Please try again.");
+    error.data = data;
+    error.status = response.status;
+    throw error;
+  }
+
+  if (data === null) {
+    throw new Error("The server returned an empty response. Check that the PHP server and MySQL database are running.");
   }
 
   return data;

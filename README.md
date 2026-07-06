@@ -1,10 +1,11 @@
 # 👨‍🍳 AI Chef
 
-AI Chef is a pantry-based recipe helper. Add what you have on hand, set a few cooking preferences, and generate recipe ideas from the app. It also keeps saved recipes, builds a shopping list, and can email that list when SMTP is configured.
+AI Chef is a pantry-based recipe helper where guests can save ingredients, generate recipe ideas, keep favorites, and build a shopping list.
 
 ## ✨ Features
 
-- Pantry manager with JSON-backed storage
+- Guest pantry sessions saved in MySQL for configurable hours
+- Pantry items, favorites, and shopping lists kept separate per browser
 - Recipe generation through the PHP API
 - Mistral, OpenAI, or local mock recipe provider
 - Strict mode for using only pantry ingredients
@@ -20,24 +21,33 @@ AI Chef is a pantry-based recipe helper. Add what you have on hand, set a few co
 - Redux Toolkit
 - Font Awesome
 - Core PHP REST API
-- JSON file storage
+- MySQL
 
 ## 📁 Project Structure
 
 ```txt
 client/   React frontend
-server/   PHP API and JSON storage
+server/   PHP API, MySQL setup, and backend config
 ```
-
-The old root `src/` and `public/` folders are from the first version of the app. The current app runs from `client/` and `server/`.
 
 ## 🚀 Run Locally
 
-Start the backend:
+Start by creating the backend env file:
 
 ```bash
 cd server
 copy .env.example .env
+```
+
+Create the MySQL database:
+
+```bash
+mysql -u root -p < database/schema.sql
+```
+
+Start the backend:
+
+```bash
 php -S localhost:8000 -t public
 ```
 
@@ -120,5 +130,3 @@ PHP syntax check:
 cd server
 php -l public/index.php
 ```
-
-For a full PHP lint pass, run `php -l` across the files in `server/app` and `server/public`.

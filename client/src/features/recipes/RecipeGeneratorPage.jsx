@@ -2,37 +2,18 @@ import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCartPlus, faFloppyDisk, faFolderOpen, faSpinner, faTrash, faWandMagicSparkles, faXmark } from "@fortawesome/free-solid-svg-icons";
-import { clearGeneratedRecipe, deleteSavedRecipe, generateRecipe, loadSavedRecipe, saveGeneratedRecipe } from "./recipesSlice";
+import { clearGeneratedRecipe, deleteSavedRecipe, fetchGenerationLimit, generateRecipe, loadSavedRecipe, saveGeneratedRecipe } from "./recipesSlice";
 import { addShoppingItems } from "../shoppingList/shoppingListSlice";
 import InstructionTimer, { getStepDurationSeconds } from "../../components/ui/InstructionTimer";
 import { APP_LIMITS } from "../../app/limits";
 import { smoothScrollToAfterRender } from "../../app/smoothScroll";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
 
-const generateLimitKey = "ai-chef-recipe-generations";
-
-function getTodayKey() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function readGenerateUsage() {
-  try {
-    const usage = JSON.parse(localStorage.getItem(generateLimitKey) || "{}");
-    return usage.date === getTodayKey() ? Number(usage.count || 0) : 0;
-  } catch {
-    return 0;
-  }
-}
-
-function saveGenerateUsage(count) {
-  localStorage.setItem(generateLimitKey, JSON.stringify({ date: getTodayKey(), count }));
-}
-
 export default function RecipeGeneratorPage({ onNavigate }) {
   const dispatch = useDispatch();
   const ingredients = useSelector((state) => state.pantry.items);
   const preferences = useSelector((state) => state.preferences);
-  const { generatedRecipe, savedRecipes, status, savedStatus, saveStatus, openStatus, openingId, deleteStatus, deletingId, error } = useSelector((state) => state.recipes);
+  const { generatedRecipe, savedRecipes, status, savedStatus, saveStatus, openStatus, openingId, deleteStatus, deletingId, error, savedNotice, generationLimit } = useSelector((state) => state.recipes);
   const { addStatus: shoppingAddStatus, items: shoppingItems } = useSelector((state) => state.shoppingList);
   const ingredientNames = ingredients.map((item) => item.name);
   const isLoading = status === "loading";
@@ -45,9 +26,7 @@ export default function RecipeGeneratorPage({ onNavigate }) {
   const isGeneratedRecipeSaved = savedRecipes.some((recipe) => (
     recipe.title || ""
   ).trim().toLowerCase() === (generatedRecipe?.title || "").trim().toLowerCase());
-  const [generateCount, setGenerateCount] = React.useState(readGenerateUsage);
-  const generateRemaining = Math.max(0, APP_LIMITS.maxRecipeGenerationsPerDay - generateCount);
-  const isGenerateLimitReached = generateRemaining === 0;
+  const isGenerateLimitReached = generationLimit.remaining <= 0;
   const shoppingRemaining = Math.max(0, APP_LIMITS.maxShoppingItems - shoppingItems.length);
   const missingIngredients = generatedRecipe?.missingIngredients || [];
   const canAddMissingIngredients = missingIngredients.length > 0 && shoppingRemaining > 0;
@@ -60,14 +39,15 @@ export default function RecipeGeneratorPage({ onNavigate }) {
     setCompletedSteps({});
   }, [generatedRecipe]);
 
+  React.useEffect(() => {
+    dispatch(fetchGenerationLimit());
+  }, [dispatch]);
+
   async function handleGenerate() {
-    if (strictModeBlocked || isGenerateLimitReached) return;
+    if (strictModeBlocked || ingredientNames.length === 0 || isGenerateLimitReached) return;
 
     try {
       await dispatch(generateRecipe({ ingredients: ingredientNames, preferences })).unwrap();
-      const nextCount = Math.min(APP_LIMITS.maxRecipeGenerationsPerDay, generateCount + 1);
-      setGenerateCount(nextCount);
-      saveGenerateUsage(nextCount);
       smoothScrollToAfterRender(() => recipeRef.current);
     } catch {
       // The slice stores the user-facing error message.
@@ -142,7 +122,7 @@ export default function RecipeGeneratorPage({ onNavigate }) {
             </p>
           )}
           <p className="limit-caption">
-            {generateRemaining} of {APP_LIMITS.maxRecipeGenerationsPerDay} recipe generations left today.
+            {generationLimit.remaining} of {generationLimit.limit || APP_LIMITS.maxRecipeGenerationsPerDay} recipe generations left today.
           </p>
         </div>
         <button className="primary-button" type="button" onClick={handleGenerate} disabled={isLoading || ingredientNames.length === 0 || strictModeBlocked || isGenerateLimitReached}>
@@ -172,6 +152,7 @@ export default function RecipeGeneratorPage({ onNavigate }) {
             </div>
           </div>
           {isGeneratedRecipeSaved && <p className="limit-caption">This recipe is already saved.</p>}
+          {savedNotice && <div className="success-banner">{savedNotice}</div>}
           {!isGeneratedRecipeSaved && isSavedLimitReached && <p className="limit-caption">You can save up to {APP_LIMITS.maxSavedRecipes} favorite recipes. Delete one to save another.</p>}
 
           <div className="recipe-meta">

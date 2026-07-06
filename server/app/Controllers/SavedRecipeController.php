@@ -9,7 +9,10 @@ use AiChef\Services\SavedRecipeService;
 
 class SavedRecipeController
 {
-    public function __construct(private SavedRecipeService $savedRecipeService)
+    public function __construct(
+        private SavedRecipeService $savedRecipeService,
+        private int $guestSessionTtlHours
+    )
     {
     }
 
@@ -35,7 +38,12 @@ class SavedRecipeController
             return Response::json(['message' => 'This recipe is already saved.'], 422);
         }
 
-        return Response::json(['data' => $this->savedRecipeService->create($body)], 201);
+        return Response::json([
+            'data' => $this->savedRecipeService->create($body),
+            'meta' => [
+                'guestSessionTtlHours' => $this->guestSessionTtlHours,
+            ],
+        ], 201);
     }
 
     public function show(Request $request): Response

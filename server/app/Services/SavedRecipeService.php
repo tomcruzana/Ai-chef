@@ -2,88 +2,94 @@
 
 namespace AiChef\Services;
 
+use PDO;
+
 class SavedRecipeService
 {
     public function __construct(
-        private JsonFileStorage $storage,
-        private JsonFileStorage $detailStorage
+        private PDO $db,
+        private string $guestSessionId
     ) {
     }
 
     public function all(): array
     {
-        return $this->storage->all();
+        $statement = $this->db->prepare(
+            'SELECT id, title, servings, difficulty, saved_at FROM saved_recipes WHERE guest_session_id = :guest_session_id ORDER BY saved_at DESC'
+        );
+        $statement->execute(['guest_session_id' => $this->guestSessionId]);
+
+        return array_map(fn ($row) => [
+            'id' => (string) $row['id'],
+            'title' => (string) $row['title'],
+            'servings' => (int) $row['servings'],
+            'difficulty' => (string) $row['difficulty'],
+            'savedAt' => $this->formatDate($row['saved_at']),
+        ], $statement->fetchAll());
     }
 
     public function find(string $id): ?array
     {
-        foreach ($this->detailStorage->all() as $recipe) {
-            if (($recipe['id'] ?? '') === $id) {
-                return $recipe;
-            }
-        }
+        $statement = $this->db->prepare('SELECT * FROM saved_recipes WHERE id = :id AND guest_session_id = :guest_session_id LIMIT 1');
+        $statement->execute([
+            'id' => $id,
+            'guest_session_id' => $this->guestSessionId,
+        ]);
+        $row = $statement->fetch();
 
-        foreach ($this->storage->all() as $recipe) {
-            if (($recipe['id'] ?? '') === $id) {
-                return $recipe;
-            }
-        }
-
-        return null;
+        return $row ? $this->mapRecipe($row) : null;
     }
 
     public function titleExists(string $title): bool
     {
-        $normalizedTitle = strtolower(trim($title));
+        $statement = $this->db->prepare('SELECT id FROM saved_recipes WHERE guest_session_id = :guest_session_id AND LOWER(title) = LOWER(:title) LIMIT 1');
+        $statement->execute([
+            'guest_session_id' => $this->guestSessionId,
+            'title' => trim($title),
+        ]);
 
-        foreach ($this->storage->all() as $recipe) {
-            if (strtolower(trim((string) ($recipe['title'] ?? ''))) === $normalizedTitle) {
-                return true;
-            }
-        }
-
-        return false;
+        return (bool) $statement->fetch();
     }
 
     public function create(array $data): array
     {
-        $recipes = $this->storage->all();
-        $details = $this->detailStorage->all();
         $recipe = $this->normalize($data, [
             'id' => $this->id(),
             'savedAt' => $this->timestamp(),
         ]);
-        $summary = $this->summary($recipe);
 
-        array_unshift($recipes, $summary);
-        array_unshift($details, $recipe);
-        $this->storage->saveAll($recipes);
-        $this->detailStorage->saveAll($details);
+        $statement = $this->db->prepare(
+            'INSERT INTO saved_recipes
+             (id, guest_session_id, title, description, ingredients_json, missing_ingredients_json, instructions_json, prep_time, cook_time, servings, difficulty, saved_at)
+             VALUES
+             (:id, :guest_session_id, :title, :description, :ingredients_json, :missing_ingredients_json, :instructions_json, :prep_time, :cook_time, :servings, :difficulty, UTC_TIMESTAMP())'
+        );
+        $statement->execute([
+            'id' => $recipe['id'],
+            'guest_session_id' => $this->guestSessionId,
+            'title' => $recipe['title'],
+            'description' => $recipe['description'],
+            'ingredients_json' => json_encode($recipe['ingredients'], JSON_UNESCAPED_SLASHES),
+            'missing_ingredients_json' => json_encode($recipe['missingIngredients'], JSON_UNESCAPED_SLASHES),
+            'instructions_json' => json_encode($recipe['instructions'], JSON_UNESCAPED_SLASHES),
+            'prep_time' => $recipe['prepTime'],
+            'cook_time' => $recipe['cookTime'],
+            'servings' => $recipe['servings'],
+            'difficulty' => $recipe['difficulty'],
+        ]);
 
-        return $recipe;
+        return $this->find($recipe['id']) ?? $recipe;
     }
 
     public function delete(string $id): bool
     {
-        $recipes = $this->storage->all();
-        $details = $this->detailStorage->all();
-        $filteredRecipes = array_values(array_filter(
-            $recipes,
-            fn ($recipe) => ($recipe['id'] ?? '') !== $id
-        ));
-        $filteredDetails = array_values(array_filter(
-            $details,
-            fn ($recipe) => ($recipe['id'] ?? '') !== $id
-        ));
+        $statement = $this->db->prepare('DELETE FROM saved_recipes WHERE id = :id AND guest_session_id = :guest_session_id');
+        $statement->execute([
+            'id' => $id,
+            'guest_session_id' => $this->guestSessionId,
+        ]);
 
-        if (count($filteredRecipes) === count($recipes) && count($filteredDetails) === count($details)) {
-            return false;
-        }
-
-        $this->storage->saveAll($filteredRecipes);
-        $this->detailStorage->saveAll($filteredDetails);
-
-        return true;
+        return $statement->rowCount() > 0;
     }
 
     private function normalize(array $data, array $meta): array
@@ -103,14 +109,20 @@ class SavedRecipeService
         ];
     }
 
-    private function summary(array $recipe): array
+    private function mapRecipe(array $row): array
     {
         return [
-            'id' => $recipe['id'],
-            'title' => $recipe['title'],
-            'servings' => $recipe['servings'],
-            'difficulty' => $recipe['difficulty'],
-            'savedAt' => $recipe['savedAt'],
+            'id' => (string) $row['id'],
+            'title' => (string) $row['title'],
+            'description' => (string) ($row['description'] ?? ''),
+            'ingredients' => $this->jsonList($row['ingredients_json'] ?? '[]'),
+            'missingIngredients' => $this->jsonList($row['missing_ingredients_json'] ?? '[]'),
+            'instructions' => $this->jsonList($row['instructions_json'] ?? '[]'),
+            'prepTime' => (int) $row['prep_time'],
+            'cookTime' => (int) $row['cook_time'],
+            'servings' => (int) $row['servings'],
+            'difficulty' => (string) $row['difficulty'],
+            'savedAt' => $this->formatDate($row['saved_at']),
         ];
     }
 
@@ -126,6 +138,13 @@ class SavedRecipeService
         )));
     }
 
+    private function jsonList(string $value): array
+    {
+        $decoded = json_decode($value, true);
+
+        return is_array($decoded) ? $this->stringList($decoded) : [];
+    }
+
     private function id(): string
     {
         return bin2hex(random_bytes(8));
@@ -134,5 +153,10 @@ class SavedRecipeService
     private function timestamp(): string
     {
         return gmdate('c');
+    }
+
+    private function formatDate(string $value): string
+    {
+        return gmdate('c', strtotime($value) ?: time());
     }
 }

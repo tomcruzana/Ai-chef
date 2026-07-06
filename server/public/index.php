@@ -1,11 +1,5 @@
 <?php
 
-$bootstrapPath = is_file(__DIR__ . '/app/bootstrap.php')
-    ? __DIR__ . '/app/bootstrap.php'
-    : dirname(__DIR__) . '/app/bootstrap.php';
-
-$router = require $bootstrapPath;
-
 $frontendUrl = getenv('FRONTEND_URL') ?: 'http://localhost:3000';
 
 header('Access-Control-Allow-Origin: ' . $frontendUrl);
@@ -13,13 +7,26 @@ header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, X-Guest-Session');
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
-    \AiChef\Core\Response::noContent()->send();
+    http_response_code(204);
     exit;
 }
 
-$apiLimitService = new \AiChef\Services\RateLimitService(
-    new \AiChef\Services\JsonFileStorage(AI_CHEF_BASE_PATH . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'api-rate-limits.json')
-);
+$bootstrapPath = is_file(__DIR__ . '/app/bootstrap.php')
+    ? __DIR__ . '/app/bootstrap.php'
+    : dirname(__DIR__) . '/app/bootstrap.php';
+
+try {
+    $router = require $bootstrapPath;
+} catch (Throwable $exception) {
+    http_response_code(500);
+    header('Content-Type: application/json');
+    echo json_encode([
+        'message' => 'Backend setup error: ' . $exception->getMessage(),
+    ]);
+    exit;
+}
+
+$apiLimitService = new \AiChef\Services\RateLimitService($GLOBALS['ai_chef_database']);
 $apiLimit = $apiLimitService->hit(
     'api:' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'),
     \AiChef\Core\AppLimits::MAX_API_REQUESTS_PER_15_MINUTES,

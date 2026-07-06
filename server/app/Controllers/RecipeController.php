@@ -12,11 +12,21 @@ use RuntimeException;
 
 class RecipeController
 {
+    private const GENERATION_WINDOW_SECONDS = 86400;
+
     public function __construct(
         private RecipeSuggestionProvider $recipeSuggestionService,
-        private RateLimitService $rateLimitService
+        private RateLimitService $rateLimitService,
+        private string $guestSessionId
     )
     {
+    }
+
+    public function generationLimit(Request $request): Response
+    {
+        return Response::json([
+            'data' => $this->currentGenerationLimit(),
+        ]);
     }
 
     public function generate(Request $request): Response
@@ -29,14 +39,17 @@ class RecipeController
         }
 
         $limit = $this->rateLimitService->hit(
-            'recipe-generate:' . $this->clientKey(),
+            $this->generationLimitKey(),
             AppLimits::MAX_RECIPE_GENERATIONS_PER_DAY,
-            86400
+            self::GENERATION_WINDOW_SECONDS
         );
 
         if (!$limit['allowed']) {
             return Response::json(
-                ['message' => 'You can generate up to 3 recipes per day. Try again tomorrow.'],
+                [
+                    'message' => 'You can generate up to 3 recipes per day. Try again tomorrow.',
+                    'data' => ['generationLimit' => $this->formatGenerationLimit($limit)],
+                ],
                 429,
                 ['Retry-After' => (string) $limit['retryAfter']]
             );
@@ -45,14 +58,37 @@ class RecipeController
         try {
             return Response::json([
                 'data' => $this->recipeSuggestionService->generate($ingredients, $preferences),
+                'meta' => [
+                    'generationLimit' => $this->formatGenerationLimit($limit),
+                ],
             ]);
         } catch (RuntimeException $exception) {
             return Response::json(['message' => $exception->getMessage()], 502);
         }
     }
 
-    private function clientKey(): string
+    private function currentGenerationLimit(): array
     {
-        return $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        return $this->formatGenerationLimit($this->rateLimitService->status(
+            $this->generationLimitKey(),
+            AppLimits::MAX_RECIPE_GENERATIONS_PER_DAY,
+            self::GENERATION_WINDOW_SECONDS
+        ));
+    }
+
+    private function formatGenerationLimit(array $limit): array
+    {
+        return [
+            'limit' => (int) $limit['limit'],
+            'count' => (int) $limit['count'],
+            'remaining' => (int) $limit['remaining'],
+            'retryAfter' => (int) $limit['retryAfter'],
+            'resetAt' => (int) $limit['resetAt'],
+        ];
+    }
+
+    private function generationLimitKey(): string
+    {
+        return 'recipe-generate:guest:' . $this->guestSessionId;
     }
 }

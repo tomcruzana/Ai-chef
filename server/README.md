@@ -11,6 +11,23 @@ cd server
 cp .env.example .env
 ```
 
+Create the MySQL database and tables:
+
+```bash
+mysql -u root -p < database/schema.sql
+```
+
+Update the database values in `server/.env` if your local MySQL user is different:
+
+```txt
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=ai_chef
+DB_USERNAME=root
+DB_PASSWORD=
+GUEST_SESSION_TTL_HOURS=24
+```
+
 Run the backend with PHP's built-in server:
 
 ```bash
@@ -71,12 +88,13 @@ Do not put AI API keys in React files, `package.json`, or committed GitHub files
 - JSON responses
 - Health check endpoint
 - Mock recipe generation endpoint
-- Pantry API with local JSON storage
-- Saved recipes API with local JSON storage
-- Shopping list API with local JSON storage
+- Browser guest sessions stored in MySQL
+- Pantry API backed by MySQL
+- Saved recipes and favorites backed by MySQL
+- Shopping list API backed by MySQL
 - OpenAI and Mistral recipe generation behind the existing recipe endpoint
 
-More endpoints will be added feature by feature.
+Guest sessions are kept for the configured number of hours. The default is 24. Expired sessions are removed during normal API requests, and their pantry, recipe, and shopping rows are deleted automatically by database foreign keys.
 
 ## Current Endpoints
 

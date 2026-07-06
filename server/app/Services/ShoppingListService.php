@@ -2,95 +2,130 @@
 
 namespace AiChef\Services;
 
+use PDO;
+
 class ShoppingListService
 {
-    public function __construct(private JsonFileStorage $storage)
-    {
+    public function __construct(
+        private PDO $db,
+        private string $guestSessionId
+    ) {
     }
 
     public function all(): array
     {
-        return $this->storage->all();
+        $statement = $this->db->prepare('SELECT * FROM shopping_items WHERE guest_session_id = :guest_session_id ORDER BY created_at DESC');
+        $statement->execute(['guest_session_id' => $this->guestSessionId]);
+
+        return array_map(fn ($row) => $this->mapRow($row), $statement->fetchAll());
     }
 
     public function createMany(array $items, int $maxItems = 0): array
     {
-        $currentItems = $this->storage->all();
         $createdItems = [];
 
         foreach ($items as $item) {
             $name = trim((string) (is_array($item) ? ($item['name'] ?? '') : $item));
 
-            if ($name === '' || $this->containsName($currentItems, $name)) {
+            if ($name === '' || $this->containsName($name)) {
                 continue;
             }
 
-            if ($maxItems > 0 && count($currentItems) >= $maxItems) {
+            if ($maxItems > 0 && $this->count() >= $maxItems) {
                 break;
             }
 
-            $createdItem = [
-                'id' => $this->id(),
+            $id = $this->id();
+            $statement = $this->db->prepare(
+                'INSERT INTO shopping_items (id, guest_session_id, name, checked, created_at, updated_at)
+                 VALUES (:id, :guest_session_id, :name, 0, UTC_TIMESTAMP(), UTC_TIMESTAMP())'
+            );
+            $statement->execute([
+                'id' => $id,
+                'guest_session_id' => $this->guestSessionId,
                 'name' => $name,
-                'checked' => false,
-                'createdAt' => $this->timestamp(),
-                'updatedAt' => $this->timestamp(),
-            ];
+            ]);
 
-            $currentItems[] = $createdItem;
-            $createdItems[] = $createdItem;
+            $created = $this->find($id);
+            if ($created !== null) {
+                $createdItems[] = $created;
+            }
         }
-
-        $this->storage->saveAll($currentItems);
 
         return $createdItems;
     }
 
     public function toggle(string $id): ?array
     {
-        $items = $this->storage->all();
+        $item = $this->find($id);
 
-        foreach ($items as $index => $item) {
-            if (($item['id'] ?? '') !== $id) {
-                continue;
-            }
-
-            $items[$index]['checked'] = !((bool) ($item['checked'] ?? false));
-            $items[$index]['updatedAt'] = $this->timestamp();
-            $this->storage->saveAll($items);
-
-            return $items[$index];
+        if ($item === null) {
+            return null;
         }
 
-        return null;
+        $statement = $this->db->prepare(
+            'UPDATE shopping_items SET checked = :checked, updated_at = UTC_TIMESTAMP() WHERE id = :id AND guest_session_id = :guest_session_id'
+        );
+        $statement->execute([
+            'checked' => $item['checked'] ? 0 : 1,
+            'id' => $id,
+            'guest_session_id' => $this->guestSessionId,
+        ]);
+
+        return $this->find($id);
     }
 
     public function delete(string $id): bool
     {
-        $items = $this->storage->all();
-        $filteredItems = array_values(array_filter(
-            $items,
-            fn ($item) => ($item['id'] ?? '') !== $id
-        ));
+        $statement = $this->db->prepare('DELETE FROM shopping_items WHERE id = :id AND guest_session_id = :guest_session_id');
+        $statement->execute([
+            'id' => $id,
+            'guest_session_id' => $this->guestSessionId,
+        ]);
 
-        if (count($filteredItems) === count($items)) {
-            return false;
-        }
-
-        $this->storage->saveAll($filteredItems);
-
-        return true;
+        return $statement->rowCount() > 0;
     }
 
-    private function containsName(array $items, string $name): bool
+    private function find(string $id): ?array
     {
-        foreach ($items as $item) {
-            if (strtolower((string) ($item['name'] ?? '')) === strtolower($name)) {
-                return true;
-            }
-        }
+        $statement = $this->db->prepare('SELECT * FROM shopping_items WHERE id = :id AND guest_session_id = :guest_session_id LIMIT 1');
+        $statement->execute([
+            'id' => $id,
+            'guest_session_id' => $this->guestSessionId,
+        ]);
+        $row = $statement->fetch();
 
-        return false;
+        return $row ? $this->mapRow($row) : null;
+    }
+
+    private function containsName(string $name): bool
+    {
+        $statement = $this->db->prepare('SELECT id FROM shopping_items WHERE guest_session_id = :guest_session_id AND LOWER(name) = LOWER(:name) LIMIT 1');
+        $statement->execute([
+            'guest_session_id' => $this->guestSessionId,
+            'name' => $name,
+        ]);
+
+        return (bool) $statement->fetch();
+    }
+
+    private function count(): int
+    {
+        $statement = $this->db->prepare('SELECT COUNT(*) FROM shopping_items WHERE guest_session_id = :guest_session_id');
+        $statement->execute(['guest_session_id' => $this->guestSessionId]);
+
+        return (int) $statement->fetchColumn();
+    }
+
+    private function mapRow(array $row): array
+    {
+        return [
+            'id' => (string) $row['id'],
+            'name' => (string) $row['name'],
+            'checked' => (bool) $row['checked'],
+            'createdAt' => $this->formatDate($row['created_at']),
+            'updatedAt' => $this->formatDate($row['updated_at']),
+        ];
     }
 
     private function id(): string
@@ -98,8 +133,8 @@ class ShoppingListService
         return bin2hex(random_bytes(8));
     }
 
-    private function timestamp(): string
+    private function formatDate(string $value): string
     {
-        return gmdate('c');
+        return gmdate('c', strtotime($value) ?: time());
     }
 }

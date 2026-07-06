@@ -9,13 +9,15 @@ export default function Header({ theme, onToggleTheme }) {
           <FontAwesomeIcon icon={faBowlFood} />
         </div>
         <div>
-          <p className="eyebrow">Pantry recipes</p>
+          <p className="eyebrow">Tom's</p>
           <h1>AI Chef</h1>
         </div>
       </div>
-      <button className="theme-toggle" type="button" onClick={onToggleTheme} aria-label="Toggle color theme" title="Toggle color theme">
-        <FontAwesomeIcon icon={faPalette} />
-      </button>
+      <div className="header-actions">
+        <button className="theme-toggle" type="button" onClick={onToggleTheme} aria-label="Toggle color theme" title="Toggle color theme">
+          <FontAwesomeIcon icon={faPalette} />
+        </button>
+      </div>
     </header>
   );
 }

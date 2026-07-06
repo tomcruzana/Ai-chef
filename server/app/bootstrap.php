@@ -6,8 +6,9 @@ use AiChef\Controllers\RecipeController;
 use AiChef\Controllers\SavedRecipeController;
 use AiChef\Controllers\ShoppingListController;
 use AiChef\Core\Router;
+use AiChef\Services\Database;
 use AiChef\Services\EmailService;
-use AiChef\Services\JsonFileStorage;
+use AiChef\Services\GuestSessionService;
 use AiChef\Services\MistralRecipeSuggestionService;
 use AiChef\Services\OpenAiRecipeSuggestionService;
 use AiChef\Services\PantryService;
@@ -67,35 +68,17 @@ if (!function_exists('ai_chef_load_env')) {
 
 ai_chef_load_env(AI_CHEF_BASE_PATH . DIRECTORY_SEPARATOR . '.env');
 
-if (!function_exists('ai_chef_guest_id')) {
-    function ai_chef_guest_id(): string
-    {
-        $rawSessionId = (string) ($_SERVER['HTTP_X_GUEST_SESSION'] ?? 'default');
-        $sessionId = preg_replace('/[^A-Za-z0-9_-]/', '', $rawSessionId) ?: 'default';
-
-        return substr($sessionId, 0, 80);
-    }
-}
-
-if (!function_exists('ai_chef_storage_path')) {
-    function ai_chef_storage_path(string $filename): string
-    {
-        return AI_CHEF_BASE_PATH
-            . DIRECTORY_SEPARATOR . 'storage'
-            . DIRECTORY_SEPARATOR . 'sessions'
-            . DIRECTORY_SEPARATOR . ai_chef_guest_id()
-            . DIRECTORY_SEPARATOR . $filename;
-    }
-}
-
 $router = new Router();
-$rateLimitService = new RateLimitService(
-    new JsonFileStorage(ai_chef_storage_path('rate-limits.json'))
-);
+$db = Database::connect();
+$GLOBALS['ai_chef_database'] = $db;
+$guestSessionTtlHours = max(1, (int) (getenv('GUEST_SESSION_TTL_HOURS') ?: 24));
+
+$guestSessionService = new GuestSessionService($db, $guestSessionTtlHours);
+$guestSessionService->cleanupExpired();
+$guestSessionId = $guestSessionService->currentSessionId();
+$rateLimitService = new RateLimitService($db);
 $healthController = new HealthController();
-$pantryController = new PantryController(new PantryService(
-    new JsonFileStorage(ai_chef_storage_path('pantry.json'))
-));
+
 $mockRecipeProvider = new RecipeSuggestionService();
 $aiProvider = strtolower((string) getenv('AI_PROVIDER'));
 
@@ -118,25 +101,23 @@ switch ($aiProvider) {
         $recipeProvider = $mockRecipeProvider;
         break;
 }
-$recipeController = new RecipeController($recipeProvider, $rateLimitService);
-$savedRecipeController = new SavedRecipeController(new SavedRecipeService(
-    new JsonFileStorage(ai_chef_storage_path('recipes.json')),
-    new JsonFileStorage(ai_chef_storage_path('recipe-details.json'))
-));
+
+$pantryController = new PantryController(new PantryService($db, $guestSessionId));
+$recipeController = new RecipeController($recipeProvider, $rateLimitService, $guestSessionId);
+$savedRecipeController = new SavedRecipeController(new SavedRecipeService($db, $guestSessionId), $guestSessionTtlHours);
 $shoppingListController = new ShoppingListController(
-    new ShoppingListService(
-        new JsonFileStorage(ai_chef_storage_path('shopping-list.json'))
-    ),
+    new ShoppingListService($db, $guestSessionId),
     new EmailService(
         (string) getenv('MAIL_ENABLED'),
         (string) getenv('MAIL_TO'),
         (string) getenv('MAIL_FROM'),
-        (string) (getenv('MAIL_DRIVER') ?: 'json'),
+        (string) (getenv('MAIL_DRIVER') ?: 'database'),
         (string) getenv('MAIL_SMTP_HOST'),
         (string) (getenv('MAIL_SMTP_PORT') ?: '587'),
         (string) getenv('MAIL_SMTP_USERNAME'),
         (string) getenv('MAIL_SMTP_PASSWORD'),
-        new JsonFileStorage(ai_chef_storage_path('email-outbox.json'))
+        $db,
+        $guestSessionId
     )
 );
 
@@ -145,6 +126,7 @@ $router->get('/api/pantry', [$pantryController, 'index']);
 $router->post('/api/pantry', [$pantryController, 'store']);
 $router->put('/api/pantry/{id}', [$pantryController, 'update']);
 $router->delete('/api/pantry/{id}', [$pantryController, 'destroy']);
+$router->get('/api/recipes/generation-limit', [$recipeController, 'generationLimit']);
 $router->post('/api/recipes/generate', [$recipeController, 'generate']);
 $router->get('/api/recipes', [$savedRecipeController, 'index']);
 $router->post('/api/recipes', [$savedRecipeController, 'store']);

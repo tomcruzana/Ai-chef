@@ -3,12 +3,12 @@ import { apiClient } from "../../app/apiClient";
 
 export const fetchPantryItems = createAsyncThunk("pantry/fetchPantryItems", async () => {
   const response = await apiClient.get("/pantry");
-  return response.data || [];
+  return response?.data || [];
 });
 
 export const createPantryItem = createAsyncThunk("pantry/createPantryItem", async (item) => {
   const response = await apiClient.post("/pantry", item);
-  return response.data;
+  return response?.data;
 });
 
 export const deletePantryItem = createAsyncThunk("pantry/deletePantryItem", async (id) => {

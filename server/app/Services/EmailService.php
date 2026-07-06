@@ -2,6 +2,7 @@
 
 namespace AiChef\Services;
 
+use PDO;
 use RuntimeException;
 
 class EmailService
@@ -15,7 +16,8 @@ class EmailService
         private string $smtpPort,
         private string $smtpUsername,
         private string $smtpPassword,
-        private JsonFileStorage $outboxStorage
+        private PDO $db,
+        private string $guestSessionId
     ) {
     }
 
@@ -53,7 +55,7 @@ class EmailService
         ));
 
         $subject = 'AI Chef shopping list';
-        $driver = strtolower($this->driver ?: 'json');
+        $driver = strtolower($this->driver ?: 'database');
 
         if ($driver === 'smtp') {
             $this->sendSmtp($to, $subject, $body);
@@ -62,15 +64,17 @@ class EmailService
         }
 
         if ($driver !== 'mail') {
-            $outbox = $this->outboxStorage->all();
-            $outbox[] = [
-                'to' => $to,
-                'from' => $this->from,
+            $statement = $this->db->prepare(
+                'INSERT INTO email_outbox (guest_session_id, recipient, sender, subject, body, created_at)
+                 VALUES (:guest_session_id, :recipient, :sender, :subject, :body, UTC_TIMESTAMP())'
+            );
+            $statement->execute([
+                'guest_session_id' => $this->guestSessionId,
+                'recipient' => $to,
+                'sender' => $this->from,
                 'subject' => $subject,
                 'body' => $body,
-                'createdAt' => gmdate('c'),
-            ];
-            $this->outboxStorage->saveAll($outbox);
+            ]);
 
             return;
         }

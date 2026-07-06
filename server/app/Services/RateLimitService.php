@@ -2,82 +2,98 @@
 
 namespace AiChef\Services;
 
+use PDO;
+
 class RateLimitService
 {
-    public function __construct(private JsonFileStorage $storage)
+    public function __construct(private PDO $db)
     {
+    }
+
+    public function status(string $key, int $limit, int $windowSeconds): array
+    {
+        $now = time();
+        $record = $this->find($key);
+
+        if ($record === null || (int) $record['reset_at'] <= $now) {
+            return [
+                'limit' => $limit,
+                'count' => 0,
+                'remaining' => $limit,
+                'retryAfter' => $windowSeconds,
+                'resetAt' => $now + $windowSeconds,
+            ];
+        }
+
+        $count = (int) $record['count'];
+
+        return [
+            'limit' => $limit,
+            'count' => $count,
+            'remaining' => max(0, $limit - $count),
+            'retryAfter' => max(1, (int) $record['reset_at'] - $now),
+            'resetAt' => (int) $record['reset_at'],
+        ];
     }
 
     public function hit(string $key, int $limit, int $windowSeconds): array
     {
         $now = time();
-        $records = $this->freshRecords($now);
-        $record = $records[$key] ?? [
-            'count' => 0,
-            'resetAt' => $now + $windowSeconds,
-        ];
+        $record = $this->find($key);
 
-        if (($record['resetAt'] ?? 0) <= $now) {
+        if ($record === null || (int) $record['reset_at'] <= $now) {
             $record = [
                 'count' => 0,
-                'resetAt' => $now + $windowSeconds,
+                'reset_at' => $now + $windowSeconds,
             ];
         }
 
-        if ((int) ($record['count'] ?? 0) >= $limit) {
-            $records[$key] = $record;
-            $this->saveRecords($records);
+        if ((int) $record['count'] >= $limit) {
+            $this->save($key, (int) $record['count'], (int) $record['reset_at']);
 
             return [
                 'allowed' => false,
+                'limit' => $limit,
+                'count' => (int) $record['count'],
                 'remaining' => 0,
-                'retryAfter' => max(1, (int) $record['resetAt'] - $now),
+                'retryAfter' => max(1, (int) $record['reset_at'] - $now),
+                'resetAt' => (int) $record['reset_at'],
             ];
         }
 
-        $record['count'] = (int) ($record['count'] ?? 0) + 1;
-        $records[$key] = $record;
-        $this->saveRecords($records);
+        $count = (int) $record['count'] + 1;
+        $this->save($key, $count, (int) $record['reset_at']);
 
         return [
             'allowed' => true,
-            'remaining' => max(0, $limit - (int) $record['count']),
-            'retryAfter' => max(1, (int) $record['resetAt'] - $now),
+            'limit' => $limit,
+            'count' => $count,
+            'remaining' => max(0, $limit - $count),
+            'retryAfter' => max(1, (int) $record['reset_at'] - $now),
+            'resetAt' => (int) $record['reset_at'],
         ];
     }
 
-    private function freshRecords(int $now): array
+    private function find(string $key): ?array
     {
-        $freshRecords = [];
+        $statement = $this->db->prepare('SELECT count, reset_at FROM rate_limits WHERE rate_key = :rate_key LIMIT 1');
+        $statement->execute(['rate_key' => $key]);
+        $record = $statement->fetch();
 
-        foreach ($this->storage->all() as $record) {
-            $key = (string) ($record['key'] ?? '');
-
-            if ($key === '' || (int) ($record['resetAt'] ?? 0) <= $now) {
-                continue;
-            }
-
-            $freshRecords[$key] = [
-                'count' => (int) ($record['count'] ?? 0),
-                'resetAt' => (int) ($record['resetAt'] ?? 0),
-            ];
-        }
-
-        return $freshRecords;
+        return $record ?: null;
     }
 
-    private function saveRecords(array $records): void
+    private function save(string $key, int $count, int $resetAt): void
     {
-        $items = [];
-
-        foreach ($records as $key => $record) {
-            $items[] = [
-                'key' => $key,
-                'count' => (int) ($record['count'] ?? 0),
-                'resetAt' => (int) ($record['resetAt'] ?? 0),
-            ];
-        }
-
-        $this->storage->saveAll($items);
+        $statement = $this->db->prepare(
+            'INSERT INTO rate_limits (rate_key, count, reset_at)
+             VALUES (:rate_key, :count, :reset_at)
+             ON DUPLICATE KEY UPDATE count = VALUES(count), reset_at = VALUES(reset_at)'
+        );
+        $statement->execute([
+            'rate_key' => $key,
+            'count' => $count,
+            'reset_at' => $resetAt,
+        ]);
     }
 }

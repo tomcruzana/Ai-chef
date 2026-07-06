@@ -1,21 +1,33 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { apiClient } from "../../app/apiClient";
 
+export const fetchGenerationLimit = createAsyncThunk("recipes/fetchGenerationLimit", async () => {
+  const response = await apiClient.get("/recipes/generation-limit");
+  return response?.data;
+});
+
 export const generateRecipe = createAsyncThunk(
   "recipes/generateRecipe",
-  async ({ ingredients, preferences }) => {
-    return apiClient.post("/recipes/generate", { ingredients, preferences });
+  async ({ ingredients, preferences }, { rejectWithValue }) => {
+    try {
+      return await apiClient.post("/recipes/generate", { ingredients, preferences });
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message,
+        generationLimit: error.data?.data?.generationLimit,
+      });
+    }
   }
 );
 
 export const fetchSavedRecipes = createAsyncThunk("recipes/fetchSavedRecipes", async () => {
   const response = await apiClient.get("/recipes");
-  return response.data || [];
+  return response?.data || [];
 });
 
 export const loadSavedRecipe = createAsyncThunk("recipes/loadSavedRecipe", async (id) => {
   const response = await apiClient.get(`/recipes/${id}`);
-  return response.data;
+  return response?.data;
 });
 
 export const saveGeneratedRecipe = createAsyncThunk(
@@ -36,7 +48,10 @@ export const saveGeneratedRecipe = createAsyncThunk(
     }
 
     const response = await apiClient.post("/recipes", recipe);
-    return response.data;
+    return {
+      recipe: response?.data,
+      guestSessionTtlHours: response?.meta?.guestSessionTtlHours,
+    };
   }
 );
 
@@ -56,6 +71,14 @@ const initialState = {
   deleteStatus: "idle",
   deletingId: "",
   error: "",
+  savedNotice: "",
+  generationLimit: {
+    limit: 3,
+    count: 0,
+    remaining: 3,
+    retryAfter: 86400,
+    resetAt: 0,
+  },
 };
 
 const recipesSlice = createSlice({
@@ -71,17 +94,29 @@ const recipesSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(fetchGenerationLimit.fulfilled, (state, action) => {
+        if (action.payload) {
+          state.generationLimit = action.payload;
+        }
+      })
       .addCase(generateRecipe.pending, (state) => {
         state.status = "loading";
         state.error = "";
+        state.savedNotice = "";
       })
       .addCase(generateRecipe.fulfilled, (state, action) => {
         state.status = "succeeded";
         state.generatedRecipe = action.payload.data || action.payload;
+        if (action.payload.meta?.generationLimit) {
+          state.generationLimit = action.payload.meta.generationLimit;
+        }
       })
       .addCase(generateRecipe.rejected, (state, action) => {
         state.status = "failed";
-        state.error = action.error.message;
+        state.error = action.payload?.message || action.error.message;
+        if (action.payload?.generationLimit) {
+          state.generationLimit = action.payload.generationLimit;
+        }
       })
       .addCase(fetchSavedRecipes.pending, (state) => {
         state.savedStatus = "loading";
@@ -113,14 +148,17 @@ const recipesSlice = createSlice({
       .addCase(saveGeneratedRecipe.pending, (state) => {
         state.saveStatus = "loading";
         state.error = "";
+        state.savedNotice = "";
       })
       .addCase(saveGeneratedRecipe.fulfilled, (state, action) => {
         state.saveStatus = "succeeded";
-        state.savedRecipes.unshift(action.payload);
+        state.savedRecipes.unshift(action.payload.recipe);
+        state.savedNotice = `Recipe saved for this guest session. Guest data is kept for ${action.payload.guestSessionTtlHours || 24} hours.`;
       })
       .addCase(saveGeneratedRecipe.rejected, (state, action) => {
         state.saveStatus = "failed";
         state.error = action.payload || action.error.message;
+        state.savedNotice = "";
       })
       .addCase(deleteSavedRecipe.pending, (state, action) => {
         state.deleteStatus = "loading";
