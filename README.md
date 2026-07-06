@@ -2,6 +2,10 @@
 
 AI Chef is a pantry-based recipe helper where guests can save ingredients, generate recipe ideas, keep favorites, and build a shopping list.
 
+## Live Site
+
+[https://khaki-kingfisher-247608.hostingersite.com/](https://khaki-kingfisher-247608.hostingersite.com/)
+
 ## ✨ Features
 
 - Guest pantry sessions saved in MySQL for configurable hours

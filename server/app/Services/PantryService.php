@@ -14,7 +14,7 @@ class PantryService
 
     public function all(): array
     {
-        $statement = $this->db->prepare('SELECT * FROM pantry_items WHERE guest_session_id = :guest_session_id ORDER BY created_at DESC');
+        $statement = $this->db->prepare('SELECT * FROM pantry_items WHERE guest_session_id = :guest_session_id ORDER BY created_at ASC');
         $statement->execute(['guest_session_id' => $this->guestSessionId]);
 
         return array_map(fn ($row) => $this->mapRow($row), $statement->fetchAll());

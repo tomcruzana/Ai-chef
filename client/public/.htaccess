@@ -1,0 +1,14 @@
+Options -MultiViews
+RewriteEngine On
+
+<Files ".env">
+  Require all denied
+</Files>
+
+RedirectMatch 404 ^/app(/|$)
+
+RewriteRule ^api(/.*)?$ api/index.php [QSA,L]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [QSA,L]
