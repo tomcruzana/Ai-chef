@@ -5,13 +5,33 @@ import { faCartPlus, faFloppyDisk, faFolderOpen, faSpinner, faTrash, faWandMagic
 import { deleteSavedRecipe, generateRecipe, loadSavedRecipe, saveGeneratedRecipe } from "./recipesSlice";
 import { addShoppingItems } from "../shoppingList/shoppingListSlice";
 import InstructionTimer, { getStepDurationSeconds } from "../../components/ui/InstructionTimer";
+import { APP_LIMITS } from "../../app/limits";
+
+const generateLimitKey = "ai-chef-recipe-generations";
+
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function readGenerateUsage() {
+  try {
+    const usage = JSON.parse(localStorage.getItem(generateLimitKey) || "{}");
+    return usage.date === getTodayKey() ? Number(usage.count || 0) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function saveGenerateUsage(count) {
+  localStorage.setItem(generateLimitKey, JSON.stringify({ date: getTodayKey(), count }));
+}
 
 export default function RecipeGeneratorPage({ onNavigate }) {
   const dispatch = useDispatch();
   const ingredients = useSelector((state) => state.pantry.items);
   const preferences = useSelector((state) => state.preferences);
   const { generatedRecipe, savedRecipes, status, savedStatus, saveStatus, openStatus, openingId, deleteStatus, deletingId, error } = useSelector((state) => state.recipes);
-  const shoppingAddStatus = useSelector((state) => state.shoppingList.addStatus);
+  const { addStatus: shoppingAddStatus, items: shoppingItems } = useSelector((state) => state.shoppingList);
   const ingredientNames = ingredients.map((item) => item.name);
   const isLoading = status === "loading";
   const isSaving = saveStatus === "loading";
@@ -19,19 +39,35 @@ export default function RecipeGeneratorPage({ onNavigate }) {
   const isDeleting = deleteStatus === "loading";
   const isAddingShoppingItems = shoppingAddStatus === "loading";
   const strictModeBlocked = preferences.strictMode && ingredientNames.length < 3;
+  const isSavedLimitReached = savedRecipes.length >= APP_LIMITS.maxSavedRecipes;
+  const [generateCount, setGenerateCount] = React.useState(readGenerateUsage);
+  const generateRemaining = Math.max(0, APP_LIMITS.maxRecipeGenerationsPerDay - generateCount);
+  const isGenerateLimitReached = generateRemaining === 0;
+  const shoppingRemaining = Math.max(0, APP_LIMITS.maxShoppingItems - shoppingItems.length);
+  const missingIngredients = generatedRecipe?.missingIngredients || [];
+  const canAddMissingIngredients = missingIngredients.length > 0 && shoppingRemaining > 0;
   const [completedSteps, setCompletedSteps] = React.useState({});
 
   React.useEffect(() => {
     setCompletedSteps({});
   }, [generatedRecipe]);
 
-  function handleGenerate() {
-    if (strictModeBlocked) return;
-    dispatch(generateRecipe({ ingredients: ingredientNames, preferences }));
+  async function handleGenerate() {
+    if (strictModeBlocked || isGenerateLimitReached) return;
+
+    try {
+      await dispatch(generateRecipe({ ingredients: ingredientNames, preferences })).unwrap();
+      const nextCount = Math.min(APP_LIMITS.maxRecipeGenerationsPerDay, generateCount + 1);
+      setGenerateCount(nextCount);
+      saveGenerateUsage(nextCount);
+    } catch {
+      // The slice stores the user-facing error message.
+    }
   }
 
   function addMissingToShoppingList() {
-    dispatch(addShoppingItems(generatedRecipe?.missingIngredients || []));
+    if (!canAddMissingIngredients) return;
+    dispatch(addShoppingItems(missingIngredients.slice(0, shoppingRemaining)));
   }
 
   function toggleStep(index) {
@@ -61,8 +97,11 @@ export default function RecipeGeneratorPage({ onNavigate }) {
               </button>
             </p>
           )}
+          <p className="limit-caption">
+            {generateRemaining} of {APP_LIMITS.maxRecipeGenerationsPerDay} recipe generations left today.
+          </p>
         </div>
-        <button className="primary-button" type="button" onClick={handleGenerate} disabled={isLoading || ingredientNames.length === 0 || strictModeBlocked}>
+        <button className="primary-button" type="button" onClick={handleGenerate} disabled={isLoading || ingredientNames.length === 0 || strictModeBlocked || isGenerateLimitReached}>
           <FontAwesomeIcon icon={isLoading ? faSpinner : faWandMagicSparkles} spin={isLoading} />
           {isLoading ? "Generating..." : "Generate recipe"}
         </button>
@@ -78,11 +117,12 @@ export default function RecipeGeneratorPage({ onNavigate }) {
               <h3>{generatedRecipe.title}</h3>
               <p>{generatedRecipe.description}</p>
             </div>
-            <button className="secondary-button" type="button" onClick={() => dispatch(saveGeneratedRecipe())} disabled={isSaving}>
+            <button className="secondary-button" type="button" onClick={() => dispatch(saveGeneratedRecipe())} disabled={isSaving || isSavedLimitReached}>
               <FontAwesomeIcon icon={isSaving ? faSpinner : faFloppyDisk} spin={isSaving} />
               {isSaving ? "Saving..." : "Save"}
             </button>
           </div>
+          {isSavedLimitReached && <p className="limit-caption">You can save up to {APP_LIMITS.maxSavedRecipes} favorite recipes. Delete one to save another.</p>}
 
           <div className="recipe-meta">
             <span>{generatedRecipe.prepTime || 10} min prep</span>
@@ -111,11 +151,14 @@ export default function RecipeGeneratorPage({ onNavigate }) {
             })}
           </ol>
 
-          {(generatedRecipe.missingIngredients || []).length > 0 && (
+          {missingIngredients.length > 0 && (
             <div className="missing-box">
               <strong>Missing ingredients</strong>
-              <p>{generatedRecipe.missingIngredients.join(", ")}</p>
-              <button className="secondary-button" type="button" onClick={addMissingToShoppingList} disabled={isAddingShoppingItems}>
+              <p>{missingIngredients.join(", ")}</p>
+              <p className="limit-caption">
+                Shopping list space: {shoppingItems.length} of {APP_LIMITS.maxShoppingItems} items used.
+              </p>
+              <button className="secondary-button" type="button" onClick={addMissingToShoppingList} disabled={isAddingShoppingItems || !canAddMissingIngredients}>
                 <FontAwesomeIcon icon={isAddingShoppingItems ? faSpinner : faCartPlus} spin={isAddingShoppingItems} />
                 {isAddingShoppingItems ? "Adding..." : "Add to shopping list"}
               </button>
@@ -129,6 +172,7 @@ export default function RecipeGeneratorPage({ onNavigate }) {
           <div>
             <p className="eyebrow">Saved recipes</p>
             <h3>Favorites</h3>
+            <p className="limit-caption">{savedRecipes.length} of {APP_LIMITS.maxSavedRecipes} favorite recipes saved.</p>
           </div>
         </div>
         {savedStatus === "loading" && <p className="empty-state">Loading saved recipes...</p>}

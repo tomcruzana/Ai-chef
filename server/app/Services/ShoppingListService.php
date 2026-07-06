@@ -13,7 +13,7 @@ class ShoppingListService
         return $this->storage->all();
     }
 
-    public function createMany(array $items): array
+    public function createMany(array $items, int $maxItems = 0): array
     {
         $currentItems = $this->storage->all();
         $createdItems = [];
@@ -23,6 +23,10 @@ class ShoppingListService
 
             if ($name === '' || $this->containsName($currentItems, $name)) {
                 continue;
+            }
+
+            if ($maxItems > 0 && count($currentItems) >= $maxItems) {
+                break;
             }
 
             $createdItem = [

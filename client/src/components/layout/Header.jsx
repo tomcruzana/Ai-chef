@@ -13,9 +13,8 @@ export default function Header({ theme, onToggleTheme }) {
           <h1>AI Chef</h1>
         </div>
       </div>
-      <button className="theme-toggle" type="button" onClick={onToggleTheme} aria-label="Toggle theme">
+      <button className="theme-toggle" type="button" onClick={onToggleTheme} aria-label="Toggle color theme" title="Toggle color theme">
         <FontAwesomeIcon icon={faPalette} />
-        {theme === "blue" ? "Blue" : "PinkSalmon"}
       </button>
     </header>
   );
