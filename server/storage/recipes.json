@@ -1,0 +1,26 @@
+[
+    {
+        "title": "Piniritong Manok at Kamatis",
+        "description": "A quick and simple Filipino-style dish using chicken wings and kamatis (tomatoes). The fried rat from bukid is omitted as it is not a typical ingredient in Filipino cooking and may not align with cultural or practical norms for home cooking.",
+        "ingredients": [
+            "Chicken wings",
+            "Kamatis"
+        ],
+        "missingIngredients": [],
+        "instructions": [
+            "Wash the chicken wings thoroughly and pat dry with a clean cloth.",
+            "Heat a pan over medium-high heat and add a small amount of oil if needed.",
+            "Add the chicken wings to the pan and cook for 5 minutes on each side until browned and cooked through.",
+            "While the chicken is cooking, wash and slice the kamatis into wedges.",
+            "Once the chicken wings are cooked, add the sliced kamatis to the pan and stir to combine.",
+            "Cook for an additional 3-5 minutes until the tomatoes are softened and the flavors have melded together.",
+            "Serve hot with steamed rice."
+        ],
+        "prepTime": 5,
+        "cookTime": 10,
+        "servings": 3,
+        "difficulty": "easy",
+        "id": "4ed62acfcb565493",
+        "savedAt": "2026-07-06T00:35:55+00:00"
+    }
+]
