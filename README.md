@@ -15,7 +15,11 @@ AI Chef is a pantry-based recipe helper where guests can save ingredients, gener
 - Blue and PinkSalmon theme toggle
 - Mobile/tablet-friendly layout
 
-## 🧰 Tech Stack
+## Support
+
+[Buy me a coffee](https://buymeacoffee.com/tomcruzana)
+
+## 💻 Tech Stack
 
 - React
 - Redux Toolkit
@@ -32,17 +36,28 @@ server/   PHP API, MySQL setup, and backend config
 
 ## 🚀 Run Locally
 
-Start by creating the backend env file:
+Create the backend env file:
 
 ```bash
 cd server
 copy .env.example .env
 ```
 
-Create the MySQL database:
+Create the MySQL database and tables:
 
 ```bash
 mysql -u root -p < database/schema.sql
+```
+
+Update these values in `server/.env` if your local MySQL setup is different:
+
+```env
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=ai_chef
+DB_USERNAME=root
+DB_PASSWORD=
+GUEST_SESSION_TTL_HOURS=24
 ```
 
 Start the backend:
@@ -71,33 +86,9 @@ API:
 http://localhost:8000/api
 ```
 
-## 🔑 AI Provider Setup
+Guest sessions are kept for the configured number of hours. The default is 24. Expired sessions are cleaned up during normal API requests.
 
-In `server/.env`, choose one provider:
-
-```env
-AI_PROVIDER=mock
-```
-
-For Mistral:
-
-```env
-AI_PROVIDER=mistral
-MISTRAL_API_KEY=your_key_here
-MISTRAL_MODEL=mistral-small-latest
-```
-
-For OpenAI:
-
-```env
-AI_PROVIDER=openai
-OPENAI_API_KEY=your_key_here
-OPENAI_MODEL=gpt-4o-mini
-```
-
-Keep API keys in `server/.env`. Do not put keys in React files.
-
-## 📬 Email Setup
+## 📧 Email Setup
 
 Shopping list email uses the recipient typed on the Shopping page. `MAIL_TO` is only a default value for that field.
 
@@ -114,6 +105,28 @@ MAIL_SMTP_PASSWORD=your_google_app_password
 ```
 
 Use a Gmail App Password, not the normal Gmail password. If Google shows it with spaces, remove the spaces in `.env`.
+
+## 🌐 Current Endpoints
+
+```txt
+GET    /api/health
+GET    /api/recipes/generation-limit
+POST   /api/recipes/generate
+GET    /api/pantry
+POST   /api/pantry
+PUT    /api/pantry/{id}
+DELETE /api/pantry/{id}
+GET    /api/recipes
+POST   /api/recipes
+GET    /api/recipes/{id}
+DELETE /api/recipes/{id}
+GET    /api/shopping-list
+POST   /api/shopping-list
+GET    /api/shopping-list/email-settings
+POST   /api/shopping-list/send
+PATCH  /api/shopping-list/{id}/toggle
+DELETE /api/shopping-list/{id}
+```
 
 ## 🧪 Checks
 

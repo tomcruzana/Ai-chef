@@ -6,6 +6,7 @@ import {
   faCartShopping,
   faChevronUp,
   faHouse,
+  faMugHot,
   faSliders,
   faStar,
   faUtensils,
@@ -104,6 +105,10 @@ export default function App() {
         <span>AI Chef</span>
         <span>&copy; {currentYear}</span>
         <span>Made by Thomas Cruzana</span>
+        <a className="site-footer-link" href="https://buymeacoffee.com/tomcruzana" target="_blank" rel="noopener noreferrer">
+          <FontAwesomeIcon icon={faMugHot} aria-hidden="true" />
+          Buy me a coffee
+        </a>
       </footer>
     </div>
   );
