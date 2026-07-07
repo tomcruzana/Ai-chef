@@ -39,7 +39,7 @@ export default function FavoritesPage({ onNavigate }) {
       <div className="page-heading">
         <p className="eyebrow">Saved recipes</p>
         <h2>Favorites</h2>
-        <p>{savedRecipes.length} of {APP_LIMITS.maxSavedRecipes} favorite recipes saved.</p>
+        <p>{savedRecipes.length} of {APP_LIMITS.maxSavedRecipes} saved.</p>
       </div>
 
       {error && <div className="error-banner">{error}</div>}
@@ -51,7 +51,7 @@ export default function FavoritesPage({ onNavigate }) {
             <div>
               <p className="eyebrow">Next step</p>
               <strong>No favorites yet.</strong>
-              <p>Generate and save a recipe to build your list.</p>
+              <p>Save a recipe you like.</p>
             </div>
             <button className="primary-button" type="button" onClick={() => onNavigate("recipes")}>
               <FontAwesomeIcon icon={faUtensils} />

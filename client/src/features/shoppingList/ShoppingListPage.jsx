@@ -67,13 +67,13 @@ export default function ShoppingListPage({ onNavigate }) {
       <div className="page-heading">
         <p className="eyebrow">Shopping list</p>
         <h2>Missing ingredients</h2>
-        <p>Generated recipes can add up to {APP_LIMITS.maxShoppingItems} missing ingredients here.</p>
+        <p>Items to buy.</p>
       </div>
 
       <div className="card action-card">
         <div>
           <strong>{items.length} shopping items</strong>
-          <p>{items.length === 0 ? "Your shopping list is empty." : "Copy or send the full list when you are ready."}</p>
+          <p>{items.length === 0 ? "Nothing here yet." : "Copy or send the list."}</p>
           <p className="limit-caption">{items.length} of {APP_LIMITS.maxShoppingItems} shopping items used.</p>
         </div>
         <label className="email-field">
@@ -116,7 +116,7 @@ export default function ShoppingListPage({ onNavigate }) {
             <div>
               <p className="eyebrow">Next step</p>
               <strong>No shopping items yet.</strong>
-              <p>Generate a recipe and add any missing ingredients here.</p>
+              <p>Add missing ingredients from a recipe.</p>
             </div>
             <button className="primary-button" type="button" onClick={() => onNavigate("recipes")}>
               <FontAwesomeIcon icon={faUtensils} />

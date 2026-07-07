@@ -34,6 +34,7 @@ input::placeholder {
     linear-gradient(180deg, var(--soft-panel), transparent 280px),
     var(--bg);
   min-height: 100vh;
+  padding-bottom: 104px;
 }
 
 .app-shell[data-theme="pink-salmon"] {
@@ -92,10 +93,27 @@ input::placeholder {
   width: 42px;
 }
 
+.header-nav-button {
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--brand-dark);
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  font-weight: 800;
+  min-height: 44px;
+  padding: 0 16px;
+}
+
+.header-nav-button.active,
+.header-nav-button:hover {
+  background: var(--brand);
+  color: white;
+}
+
 .app-main {
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  gap: 24px;
   padding: 0 clamp(18px, 4vw, 56px) 48px;
 }
 
@@ -133,40 +151,99 @@ input::placeholder {
   margin-left: 12px;
 }
 
-.sidebar {
-  align-self: start;
-  background: rgba(255, 255, 255, 0.72);
+.bottom-nav {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.92);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 22px;
+  bottom: 18px;
   box-shadow: var(--shadow);
-  padding: 12px;
-  position: sticky;
-  top: 16px;
-}
-
-.mobile-menu-toggle {
-  display: none;
-}
-
-.nav-scroll {
   display: grid;
-  gap: 8px;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  left: 50%;
+  max-width: 680px;
+  padding: 10px 14px;
+  position: fixed;
+  transform: translateX(-50%);
+  width: min(calc(100% - 32px), 680px);
+  z-index: 20;
 }
 
-.nav-button {
+.bottom-nav-group {
+  display: grid;
+  gap: 4px;
+  grid-auto-columns: minmax(56px, 1fr);
+  grid-auto-flow: column;
+}
+
+.bottom-nav-group:first-child {
+  padding-right: 20px;
+}
+
+.bottom-nav-group:last-child {
+  padding-left: 20px;
+}
+
+.bottom-nav-button {
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: 8px;
+  border-radius: 12px;
   color: var(--muted);
-  display: flex;
-  gap: 12px;
-  padding: 13px 14px;
-  text-align: left;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 5px;
+  justify-content: center;
+  min-height: 54px;
+  padding: 8px 6px;
+  text-align: center;
+  width: 100%;
 }
 
-.nav-button.active, .nav-button:hover { background: var(--soft); color: var(--brand-dark); }
-.content-panel { min-width: 0; }
+.bottom-nav-button svg {
+  font-size: 1.05rem;
+}
+
+.bottom-nav-button span {
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.bottom-nav-button.active,
+.bottom-nav-button:hover {
+  background: var(--soft);
+  color: var(--brand-dark);
+}
+
+.bottom-nav-button.primary-action {
+  background: var(--brand);
+  border: 4px solid var(--panel);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  color: white;
+  min-height: 72px;
+  min-width: 92px;
+  padding: 10px 14px;
+  transform: translateY(-18px);
+}
+
+.bottom-nav-button.primary-action.active,
+.bottom-nav-button.primary-action:hover {
+  background: var(--brand-dark);
+  color: white;
+}
+
+.bottom-nav-button.primary-action svg {
+  font-size: 1.25rem;
+}
+
+.content-panel {
+  margin: 0 auto;
+  max-width: 1180px;
+  min-width: 0;
+}
 .page-stack { display: grid; gap: 22px; }
 
 .hero-card, .card, .stat-card {
@@ -534,10 +611,31 @@ input::placeholder {
   width: 42px;
 }
 
-.header-actions {
+.theme-settings-card {
   align-items: center;
   display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  padding: 18px;
+}
+
+.theme-settings-card h3 {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  margin: 0 0 6px;
+}
+
+.theme-settings-card p:not(.eyebrow) {
+  color: var(--muted);
+  margin: 0;
+}
+
+.preference-theme-toggle {
   gap: 10px;
+  min-width: 170px;
+  padding: 0 14px;
+  width: auto;
 }
 
 
@@ -548,48 +646,10 @@ input::placeholder {
 }
 
 @media (max-width: 1100px) {
-  .app-main { grid-template-columns: 180px minmax(0, 1fr); }
   .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 920px) {
-  .app-main { grid-template-columns: 1fr; }
-  .sidebar {
-    background: rgba(255, 255, 255, 0.82);
-    display: grid;
-    gap: 8px;
-    padding: 10px;
-    position: static;
-  }
-
-  .mobile-menu-toggle {
-    align-items: center;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--brand-dark);
-    display: flex;
-    font-weight: 800;
-    justify-content: space-between;
-    min-height: 48px;
-    padding: 12px 14px;
-    width: 100%;
-  }
-
-  .nav-scroll {
-    display: none;
-    gap: 6px;
-  }
-
-  .nav-scroll.open {
-    display: grid;
-  }
-
-  .nav-button {
-    justify-content: flex-start;
-    min-height: 46px;
-    width: 100%;
-  }
   .stats-grid, .form-grid, .form-grid.two-column, .pantry-form-grid { grid-template-columns: 1fr; }
   .toggle-field { grid-column: span 1; }
   .action-card, .recipe-header, .guide-card { align-items: flex-start; flex-direction: column; }
@@ -598,14 +658,11 @@ input::placeholder {
 
 @media (max-width: 620px) {
   .site-header {
-    align-items: flex-start;
-    flex-direction: column;
-    padding: 20px 16px;
+    padding: 20px 16px 16px;
   }
 
-  .header-actions {
-    justify-content: space-between;
-    width: 100%;
+  .site-header h1 {
+    font-size: 1.75rem;
   }
 
   .brand-mark {
@@ -613,12 +670,12 @@ input::placeholder {
     width: 48px;
   }
 
-  .theme-toggle {
-    align-self: flex-end;
+  .header-nav-button {
+    min-height: 40px;
+    padding: 0 12px;
   }
 
   .app-main {
-    gap: 16px;
     padding: 0 16px 32px;
   }
 
@@ -633,13 +690,50 @@ input::placeholder {
     margin-left: 0;
   }
 
-  .sidebar {
-    gap: 6px;
-    padding: 8px;
+  .bottom-nav {
+    border-radius: 18px;
+    bottom: 10px;
+    gap: 8px;
+    padding: 8px 10px;
+    width: calc(100% - 20px);
   }
 
-  .nav-button {
-    padding: 11px 12px;
+  .bottom-nav-group {
+    grid-auto-columns: minmax(46px, 1fr);
+  }
+
+  .bottom-nav-group:first-child {
+    padding-right: 8px;
+  }
+
+  .bottom-nav-group:last-child {
+    padding-left: 8px;
+  }
+
+  .bottom-nav-button {
+    gap: 4px;
+    min-height: 48px;
+    padding: 7px 4px;
+  }
+
+  .bottom-nav-button span {
+    font-size: 0.62rem;
+  }
+
+  .bottom-nav-button.primary-action {
+    min-height: 64px;
+    min-width: 78px;
+    padding: 8px;
+    transform: translateY(-14px);
+  }
+
+  .theme-settings-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .preference-theme-toggle {
+    width: 100%;
   }
 
   .hero-card, .card {

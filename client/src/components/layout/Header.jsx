@@ -1,7 +1,7 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBowlFood, faPalette } from "@fortawesome/free-solid-svg-icons";
+import { faBowlFood, faSliders } from "@fortawesome/free-solid-svg-icons";
 
-export default function Header({ theme, onToggleTheme }) {
+export default function Header({ onOpenPreferences, isPreferencesActive }) {
   return (
     <header className="site-header">
       <div className="brand-group">
@@ -13,11 +13,15 @@ export default function Header({ theme, onToggleTheme }) {
           <h1>AI Chef</h1>
         </div>
       </div>
-      <div className="header-actions">
-        <button className="theme-toggle" type="button" onClick={onToggleTheme} aria-label="Toggle color theme" title="Toggle color theme">
-          <FontAwesomeIcon icon={faPalette} />
-        </button>
-      </div>
+      <button
+        className={`header-nav-button ${isPreferencesActive ? "active" : ""}`}
+        type="button"
+        onClick={onOpenPreferences}
+        aria-label="Open preferences"
+      >
+        <FontAwesomeIcon icon={faSliders} />
+        <span>Prefs</span>
+      </button>
     </header>
   );
 }

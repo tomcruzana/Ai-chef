@@ -1,11 +1,12 @@
 import { useDispatch, useSelector } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faLock, faSliders } from "@fortawesome/free-solid-svg-icons";
+import { faLock, faPalette, faSliders } from "@fortawesome/free-solid-svg-icons";
 import { updatePreference } from "./preferencesSlice";
 
-export default function PreferencesPanel() {
+export default function PreferencesPanel({ theme, onToggleTheme }) {
   const dispatch = useDispatch();
   const preferences = useSelector((state) => state.preferences);
+  const themeLabel = theme === "pink-salmon" ? "PinkSalmon accent" : "Blue accent";
 
   function update(field, value) {
     dispatch(updatePreference({ field, value }));
@@ -15,8 +16,8 @@ export default function PreferencesPanel() {
     <div className="page-stack">
       <div className="page-heading">
         <p className="eyebrow">Recipe preferences</p>
-        <h2><FontAwesomeIcon icon={faSliders} /> Personalize AI suggestions</h2>
-        <p>These settings are sent with recipe generation requests.</p>
+        <h2><FontAwesomeIcon icon={faSliders} /> Preferences</h2>
+        <p>Tune recipe results.</p>
       </div>
 
       <div className="card form-grid two-column">
@@ -58,13 +59,25 @@ export default function PreferencesPanel() {
         <label className="toggle-field">
           <span>
             Strict mode
-            <small>Use only pantry ingredients. Requires at least 3 items.</small>
+            <small>Only use pantry items. Needs 3 items.</small>
           </span>
           <input type="checkbox" checked={preferences.strictMode} onChange={(event) => update("strictMode", event.target.checked)} />
         </label>
       </div>
 
-      <p className="note"><FontAwesomeIcon icon={faLock} /> Strict mode keeps suggestions limited to ingredients already in your pantry.</p>
+      <div className="card theme-settings-card">
+        <div>
+          <p className="eyebrow">Appearance</p>
+          <h3><FontAwesomeIcon icon={faPalette} /> Color theme</h3>
+          <p>Current theme: {themeLabel}</p>
+        </div>
+        <button className="theme-toggle preference-theme-toggle" type="button" onClick={onToggleTheme}>
+          <FontAwesomeIcon icon={faPalette} />
+          <span>{theme === "pink-salmon" ? "Use Blue" : "Use PinkSalmon"}</span>
+        </button>
+      </div>
+
+      <p className="note"><FontAwesomeIcon icon={faLock} /> Strict mode uses pantry items only.</p>
     </div>
   );
 }

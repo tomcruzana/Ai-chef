@@ -51,7 +51,7 @@ export default function PantryPage({ onNavigate }) {
       <div className="page-heading">
         <p className="eyebrow">Pantry manager</p>
         <h2>Ingredients on hand</h2>
-        <p>Add up to {APP_LIMITS.maxPantryItems} ingredients the AI chef can use when creating recipe suggestions.</p>
+        <p>Add ingredients you have at home.</p>
       </div>
 
       {error && (
@@ -103,7 +103,7 @@ export default function PantryPage({ onNavigate }) {
           <div>
             <p className="eyebrow">Ready</p>
             <strong>You have enough pantry items.</strong>
-            <p>Generate a recipe using only what you have on hand.</p>
+            <p>Ready to generate.</p>
           </div>
           <button className="primary-button" type="button" onClick={() => onNavigate("recipes")}>
             Generate

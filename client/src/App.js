@@ -2,12 +2,9 @@ import React from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBasketShopping,
-  faBars,
   faCartShopping,
-  faChevronUp,
   faHouse,
   faMugHot,
-  faSliders,
   faStar,
   faUtensils,
 } from "@fortawesome/free-solid-svg-icons";
@@ -26,18 +23,16 @@ import { smoothScrollToAfterRender } from "./app/smoothScroll";
 
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: faHouse },
-  { id: "recipes", label: "Generate", icon: faUtensils },
-  { id: "favorites", label: "Favorites", icon: faStar },
   { id: "pantry", label: "Pantry", icon: faBasketShopping },
+  { id: "favorites", label: "Favorites", icon: faStar },
+  { id: "recipes", label: "Generate", icon: faUtensils },
   { id: "shopping", label: "Shopping", icon: faCartShopping },
-  { id: "preferences", label: "Preferences", icon: faSliders },
 ];
 
 export default function App() {
   const dispatch = useDispatch();
   const [activeView, setActiveView] = React.useState("dashboard");
   const [theme, setTheme] = React.useState(() => localStorage.getItem("ai-chef-theme") || "blue");
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const contentRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -56,51 +51,51 @@ export default function App() {
 
   function selectView(view) {
     setActiveView(view);
-    setIsMobileMenuOpen(false);
     smoothScrollToAfterRender(() => contentRef.current);
   }
 
   const currentYear = new Date().getFullYear();
-  const activeNavItem = navItems.find((item) => item.id === activeView);
+  const generateItem = navItems.find((item) => item.id === "recipes");
+  const secondaryNavItems = navItems.filter((item) => item.id !== "recipes");
+  const leftNavItems = secondaryNavItems.slice(0, 2);
+  const rightNavItems = secondaryNavItems.slice(2);
   const viewMap = {
     dashboard: <Dashboard onNavigate={selectView} />,
     recipes: <RecipeGeneratorPage onNavigate={selectView} />,
     favorites: <FavoritesPage onNavigate={selectView} />,
     pantry: <PantryPage onNavigate={selectView} />,
     shopping: <ShoppingListPage onNavigate={selectView} />,
-    preferences: <PreferencesPanel />,
+    preferences: <PreferencesPanel theme={theme} onToggleTheme={toggleTheme} />,
   };
+
+  function renderNavButton(item, className = "") {
+    const isActive = activeView === item.id;
+
+    return (
+      <button
+        key={item.id}
+        className={`bottom-nav-button ${className} ${isActive ? "active" : ""}`.trim()}
+        onClick={() => selectView(item.id)}
+        type="button"
+        aria-label={item.ariaLabel || item.label}
+      >
+        <FontAwesomeIcon icon={item.icon} />
+        <span>{item.label}</span>
+      </button>
+    );
+  }
 
   return (
     <div className="app-shell" data-theme={theme}>
-      <Header theme={theme} onToggleTheme={toggleTheme} />
+      <Header onOpenPreferences={() => selectView("preferences")} isPreferencesActive={activeView === "preferences"} />
       <main className="app-main">
-        <aside className="sidebar" aria-label="Main navigation">
-          <button
-            className="mobile-menu-toggle"
-            type="button"
-            onClick={() => setIsMobileMenuOpen((current) => !current)}
-            aria-expanded={isMobileMenuOpen}
-          >
-            <span>{activeNavItem?.label || "Menu"}</span>
-            <FontAwesomeIcon icon={isMobileMenuOpen ? faChevronUp : faBars} aria-hidden="true" />
-          </button>
-          <div className={`nav-scroll ${isMobileMenuOpen ? "open" : ""}`}>
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                className={`nav-button ${activeView === item.id ? "active" : ""}`}
-                onClick={() => selectView(item.id)}
-                type="button"
-              >
-                <FontAwesomeIcon icon={item.icon} />
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </div>
-        </aside>
         <section className="content-panel" ref={contentRef}>{viewMap[activeView]}</section>
       </main>
+      <nav className="bottom-nav" aria-label="Main navigation">
+        <div className="bottom-nav-group">{leftNavItems.map((item) => renderNavButton(item))}</div>
+        {generateItem && renderNavButton(generateItem, "primary-action")}
+        <div className="bottom-nav-group">{rightNavItems.map((item) => renderNavButton(item))}</div>
+      </nav>
       <footer className="site-footer">
         <span>AI Chef</span>
         <span>&copy; {currentYear}</span>

@@ -103,7 +103,7 @@ export default function RecipeGeneratorPage({ onNavigate }) {
       <div className="page-heading">
         <p className="eyebrow">AI recipe generator</p>
         <h2>Generate a recipe from your pantry</h2>
-        <p>Uses pantry items and preferences, then asks the PHP backend to create a structured recipe.</p>
+        <p>Pick from your pantry and cook.</p>
       </div>
 
       <div className="card action-card">
@@ -112,7 +112,7 @@ export default function RecipeGeneratorPage({ onNavigate }) {
           {ingredientNames.length > 0 ? (
             <p>
               {ingredientNames.join(", ")}
-              {strictModeBlocked && " Strict mode needs at least 3 pantry items."}
+              {strictModeBlocked && " Add at least 3 items."}
             </p>
           ) : (
             <p>
@@ -202,7 +202,7 @@ export default function RecipeGeneratorPage({ onNavigate }) {
                 ))}
               </div>
               <p className="limit-caption">
-                Shopping list space: {shoppingItems.length} of {APP_LIMITS.maxShoppingItems} items used.
+              Shopping list: {shoppingItems.length} of {APP_LIMITS.maxShoppingItems} used.
               </p>
               <button className="secondary-button" type="button" onClick={addMissingToShoppingList} disabled={isAddingShoppingItems || !canAddMissingIngredients}>
                 <FontAwesomeIcon icon={isAddingShoppingItems ? faSpinner : faCartPlus} spin={isAddingShoppingItems} />
@@ -219,7 +219,7 @@ export default function RecipeGeneratorPage({ onNavigate }) {
           <div>
             <p className="eyebrow">Saved recipes</p>
             <h3>Favorites</h3>
-            <p className="limit-caption">{savedRecipes.length} of {APP_LIMITS.maxSavedRecipes} favorite recipes saved.</p>
+            <p className="limit-caption">{savedRecipes.length} of {APP_LIMITS.maxSavedRecipes} saved.</p>
           </div>
         </div>
         {savedStatus === "loading" && <p className="empty-state">Loading saved recipes...</p>}
